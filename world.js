@@ -86,6 +86,13 @@ if(graffiti&&!reduced){
  fetch('./data/parter.json').then(r=>{if(!r.ok)throw Error('Parter route HTTP '+r.status);return r.json()})
  .then(data=>{
    artistRoute=createArtistRoute({scene,data,canWalk:walkAllowed,floorHeight:levels.floorHeight,showDebug:new URLSearchParams(window.location.search).has('artistRoute')});
+   if(new URLSearchParams(window.location.search).has('artistRoute')){
+     const original=data.points.filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.z)).map(p=>new T.Vector3(p.x,0.15,p.z));
+     const originalLine=new T.Line(new T.BufferGeometry().setFromPoints(original),new T.LineBasicMaterial({color:0xff5c9a,depthTest:false,transparent:true,opacity:.95}));
+     originalLine.renderOrder=999;scene.add(originalLine);
+     const legend=document.createElement('div');legend.style.cssText='position:fixed;z-index:9999;left:12px;top:170px;padding:9px 12px;border-radius:8px;background:#081d1de8;color:white;font:13px/1.6 sans-serif;pointer-events:none';
+     legend.innerHTML='<span style="color:#ff7db0">━</span> Traseu desenat<br><span style="color:#61f1cd">━</span> Traseu adaptat';document.body.appendChild(legend);
+   }
    console.info('Artist graffiti: traseu recalculat din planul conceptual pentru arhitectura NINJA.SYS',artistRoute.stats);
  }).catch(e=>console.error('Traseul artistului nu este disponibil:',e));
 }
@@ -195,6 +202,12 @@ camera.rotation.set(pitch,yaw,0);if(!reduced){surfaceFinish.update(clock);detail
 if(frontLayout)camera.position.y=Math.max(camera.position.y,levels.floorHeight(camera.position.x,camera.position.z)+1.65);
 if(artistRoute&&graffiti?.hasModel()&&!reduced){
  const pose=artistRoute.update(dt,1.05);graffiti.setWalkPose(pose.position,pose.heading);
+ if(new URLSearchParams(window.location.search).has('artistFollow')){
+  hideIntro();travel=null;touring=false;
+  const offset=new T.Vector3(-Math.sin(pose.heading)*4,2.5,-Math.cos(pose.heading)*4);
+  camera.position.copy(pose.position).add(offset);
+  setLook(new T.Vector3(pose.position.x,pose.position.y+1.2,pose.position.z));
+ }
 }
 graffiti?.update(dt);
 if(useMobileLightBudget&&Math.floor(clock*2)!==Math.floor((clock-dt)*2))selectMobileLights();

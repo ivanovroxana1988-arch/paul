@@ -33,7 +33,8 @@ export function installRenderAudit({T,scene,renderer,camera}) {
     });
     [...buttons.children].forEach((b,i)=>{const active=Object.keys(vals)[i]===selected;b.style.outline=active?'2px solid #71f2c3':'none'});
   }
-  apply('normal');
+  const requested=new URLSearchParams(location.search).get('renderMode');
+  apply(Object.hasOwn(vals,requested)?requested:'normal');
   function stats(){
     let visible=0,mesh=0,triangles=renderer.info.render.triangles,draws=renderer.info.render.calls;
     scene.traverse(o=>{if(o.isMesh){mesh++;if(o.visible)visible++}});

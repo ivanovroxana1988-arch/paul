@@ -1,0 +1,42 @@
+name: Import verified graffiti GLB
+on:
+  push:
+    branches:
+      - preview/interactive-3d
+    paths:
+      - .github/workflows/import-graffiti-model.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-glb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: preview/interactive-3d
+          persist-credentials: true
+      - name: Download original GLB and verify checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+          curl --fail --location --retry 3 --connect-timeout 20 --max-time 180 \
+            'https://v3b.fal.media/files/b/0ab1cbe9/RX53R94tngPxcKIuPRFy8_graffiti-character-3d.glb' \
+            --output assets/graffiti-character-3d.glb
+          echo '5ea4eaea87bc7cb57a9a7ee957bfc35428f1dbef901a705e00c50ee91ccd70cb  assets/graffiti-character-3d.glb' | sha256sum -c -
+          test "$(stat -c%s assets/graffiti-character-3d.glb)" -eq 25358368
+          test "$(head -c 4 assets/graffiti-character-3d.glb)" = 'glTF'
+      - name: Commit verified original model to preview branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/graffiti-character-3d.glb
+          if ! git diff --cached --quiet; then
+            git commit -m 'Import original verified graffiti character GLB'
+            git push origin HEAD:preview/interactive-3d
+          fi

@@ -1,5 +1,6 @@
 import * as T from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/loaders/GLTFLoader.js';
+import {parseClipJSON,retargetClipToObject} from './motion/animation-retarget.js';
 
 // Self-contained character module. The parent is the left alcove in the hall.
 export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
@@ -12,10 +13,10 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
   painting.name='graffiti-painted-wall'; painting.position.set(wallX,wallY,-1.955); root.add(painting);
   const selectable=[];
   let model=null,mixer=null,spray=null,front=false,previous=null,targetRotation=Math.PI,walking=false,walkTime=0,walkYOffset=0;
-  let idleAction=null,paintAction=null;
+  let idleAction=null,paintAction=null,walkAction=null,animationReady=false;
   const gaitBones={};
   const nozzleLocal=new T.Vector3(0,10.5,0),pointWorld=new T.Vector3();
-  new GLTFLoader().load('./characters/graffiti-artist.glb',g=>{
+  new GLTFLoader().load('./characters/graffiti-artist.glb',async g=>{
     model=g.scene;model.name='graffiti-artist';
     const bounds=new T.Box3().setFromObject(model),size=bounds.getSize(new T.Vector3());
     model.scale.setScalar(1.82/size.y); model.rotation.y=Math.PI; root.add(model);
@@ -34,12 +35,29 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
       const tip=new T.Mesh(new T.CylinderGeometry(.7,.7,1.4,12),new T.MeshStandardMaterial({color:0xd85a42,roughness:.55}));tip.position.y=9.7;
       spray.add(bottle,collar,tip);hand.add(spray);
     }
+    // Retarget the walking clip before an AnimationMixer changes the model's bind pose.
+    let walkClip=null;
+    try{
+      const response=await fetch('./characters/motion/soldier-walk.json');
+      if(!response.ok)throw Error('walking clip HTTP '+response.status);
+      const raw=parseClipJSON(await response.json(),'Walk');
+      const result=retargetClipToObject(raw,model);
+      if(!result.clip)throw Error('walking clip incompatible with skeleton');
+      walkClip=result.clip;
+      console.info('Artist walking animation retargeted',result.bodyMatched,'/',result.bodyTotal);
+    }catch(error){console.warn('Walking animation unavailable; using fallback',error)}
     const paint=g.animations.find(a=>a.name==='Graffiti_Paint_Experimental');
     const idle=g.animations.find(a=>a.name?.includes('Idle'))||g.animations[0];
     if(paint||idle){mixer=new T.AnimationMixer(model);if(paint){paintAction=mixer.clipAction(paint);paintAction.play()}if(idle){idleAction=mixer.clipAction(idle);idleAction.enabled=true;idleAction.setEffectiveWeight(0);idleAction.play();}}
     for(const boneName of ['LeftUpLeg','RightUpLeg','LeftLeg','RightLeg','LeftArm','RightArm']){
       const b=model.getObjectByName(boneName);if(b)gaitBones[boneName]=b;
     }
+    if(walkClip){
+      if(!mixer)mixer=new T.AnimationMixer(model);
+      walkAction=mixer.clipAction(walkClip);
+      walkAction.setEffectiveWeight(0);walkAction.setEffectiveTimeScale(.8);walkAction.play();
+    }
+    animationReady=true;
     selectable.push(model);
   },undefined,error=>console.error('Artistul graffiti nu s-a putut încărca:',error));
   function ownsObject(object){for(let o=object;o;o=o.parent)if(o===model&&model)return true;return false;}
@@ -49,24 +67,25 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
     scene.add(model); // keep the original painting plane attached to its architectural alcove
     model.position.set(0,walkYOffset,0);
     if(paintAction)paintAction.setEffectiveWeight(0);
-    if(idleAction)idleAction.setEffectiveWeight(1);
+    if(idleAction)idleAction.setEffectiveWeight(walkAction?0:1);
+    if(walkAction)walkAction.setEffectiveWeight(1);
   }
   function setWalkPose(point,heading){
     if(!model)return;
     if(!walking)startWalking();
     model.position.set(point.x,point.y+walkYOffset,point.z);
-    targetRotation=heading;
+    targetRotation=heading+(walkAction?Math.PI:0);
     const diff=T.MathUtils.euclideanModulo(targetRotation-model.rotation.y+Math.PI,2*Math.PI)-Math.PI;
     model.rotation.y+=diff*.23;
   }
-  function hasModel(){return !!model;}
+  function hasModel(){return !!model&&animationReady;}
   function getPosition(){return model?.getWorldPosition(new T.Vector3())||null;}
   function update(dt){
     if(!model)return;
     if(!walking)model.rotation.y=reducedMotion?targetRotation:T.MathUtils.damp(model.rotation.y,targetRotation,7,dt);
     if(!reducedMotion&&mixer)mixer.update(dt);
     if(walking){
-      if(!reducedMotion){
+      if(!reducedMotion&&!walkAction){
         walkTime+=dt*7.2;
         const phase=Math.sin(walkTime),opposite=Math.sin(walkTime+Math.PI);
         const l=gaitBones.LeftUpLeg,r=gaitBones.RightUpLeg;

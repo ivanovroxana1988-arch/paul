@@ -177,12 +177,18 @@ function isAncestorObject(a, b) {
  * @returns {Array<{node: import('three').Object3D, raw: string, canonical: string}>}
  */
 function canonicalBoneEntries(root) {
+	// This model numbers its spine from the neck down; recognize the actual hierarchy.
+	const low = root.getObjectByName('Spine02');
+	const mid = root.getObjectByName('Spine01');
+	const high = root.getObjectByName('Spine');
+	const reversedSpine = low?.parent?.name === 'Hips' && mid?.parent === low && high?.parent === mid;
+	const spineNames = reversedSpine ? {Spine02:'Spine',Spine01:'Spine1',Spine:'Spine2'} : null;
 	const entries = [];
 	const seen = new Set();
 	const consider = (node) => {
 		if (!node?.name || seen.has(node)) return;
 		seen.add(node);
-		const canonical = canonicalizeBoneName(node.name);
+		const canonical = spineNames?.[node.name] || canonicalizeBoneName(node.name);
 		if (canonical) entries.push({ node, raw: node.name, canonical });
 	};
 	const skinned = [];

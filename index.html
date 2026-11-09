@@ -11,7 +11,7 @@ header{position:absolute;top:20px;left:24px;z-index:2;pointer-events:none}h1{fon
 <label><input id="showRoute" type="checkbox" checked> Afișează traseul</label>
 <label><input id="showUpper" type="checkbox" checked> Afișează etajele și cupola</label>
 <label>Viteza mersului <input id="speed" type="range" min=".35" max="2.5" step=".05" value="1"></label>
-<small>Trage cu mouse-ul pentru a roti. Scroll pentru zoom. Click dreapta pentru deplasarea camerei.</small><div id="status">Se inițializează scena 3D…</div><div id="assetStatus" style="color:#e6be89;font-size:11px;margin-top:6px">Se verifică modelul GLB…</div></section>
+<small>Trage cu mouse-ul pentru a roti. Scroll pentru zoom. Click dreapta pentru deplasarea camerei.</small><div id="status">Se inițializează scena 3D…</div><div id="assetStatus" style="color:#e6be89;font-size:11px;margin-top:6px">Se încarcă modelul graffiti original…</div></section>
 <div id="tips">Reconstrucție conceptuală, nu codul scenei originale</div>
 <script type="module">
 import * as THREE from 'three';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -55,7 +55,7 @@ const armA=piece(new THREE.CapsuleGeometry(.075,.45,3,8),jacket,-.35,1.26,0),arm
 const spray=piece(new THREE.CylinderGeometry(.055,.055,.20,10),new THREE.MeshStandardMaterial({color:0xe5b34e,metalness:.6}),.39,.96,.12);
 // Optional original character. The fallback avatar remains until the asset is uploaded to /assets.
 const loader=new GLTFLoader();
-loader.load('./assets/graffiti-character-3d.glb',gltf=>{
+loader.load('https://v3b.fal.media/files/b/0ab1cbe9/RX53R94tngPxcKIuPRFy8_graffiti-character-3d.glb',gltf=>{
   const model=gltf.scene;
   const bounds=new THREE.Box3().setFromObject(model);
   if(bounds.isEmpty())return;
@@ -70,7 +70,7 @@ loader.load('./assets/graffiti-character-3d.glb',gltf=>{
   spray.visible=false;
   model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
   document.querySelector('#assetStatus').textContent='Model GLB original încărcat · animația scheletului este în lucru';
-},undefined,()=>{document.querySelector('#assetStatus').textContent='Avatar de test · modelul GLB încă nu a fost urcat în GitHub';});
+},undefined,()=>{document.querySelector('#assetStatus').textContent='Avatar de test · modelul GLB nu a putut fi încărcat de la gazda de fișiere';});
 const lengths=[0];for(let i=1;i<samples.length;i++)lengths.push(lengths[i-1]+samples[i].distanceTo(samples[i-1]));const total=lengths[lengths.length-1];let dist=0,playing=true;
 function tick(dt){if(playing){dist+=dt*Number(document.querySelector('#speed').value);if(dist>total)dist=0}let lo=0,hi=lengths.length-1;while(lo<hi){const m=(lo+hi)>>1;if(lengths[m]<dist)lo=m+1;else hi=m}const i=Math.max(1,lo),d=(dist-lengths[i-1])/Math.max(.00001,lengths[i]-lengths[i-1]);actor.position.copy(samples[i-1]).lerp(samples[i],THREE.MathUtils.clamp(d,0,1));actor.position.y=-.12;const dir=samples[Math.min(i+1,samples.length-1)].clone().sub(samples[Math.max(i-1,0)]);actor.rotation.y=Math.atan2(dir.x,dir.z);const g=Math.sin(dist*9)*.45*(playing?1:0);legA.rotation.x=g;legB.rotation.x=-g;armA.rotation.x=-g*.7;armB.rotation.x=g*.7;document.querySelector('#status').textContent='Traseu original (268 puncte, dus-întors) · '+dist.toFixed(1)+' / '+total.toFixed(1)+' m · avatar de test'}
 document.querySelector('#tour').onclick=()=>{playing=true;document.querySelector('#tour').classList.add('active');document.querySelector('#pause').classList.remove('active')};

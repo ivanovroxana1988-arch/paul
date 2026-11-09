@@ -9,6 +9,19 @@ export function installRenderAudit({T,scene,renderer,camera}) {
   document.body.appendChild(panel);
   scene.traverse(obj=>{if(obj.isMesh && obj.name!=='visible-solar-sky'){snapshots.push({obj,material:obj.material})}});
   const originalColors=snapshots.map(({obj})=>obj.visible);
+  const sceneLights=[];scene.traverse(o=>{if(o.isLight)sceneLights.push({o,visible:o.visible})});
+  const shadowSetting=renderer.shadowMap.enabled;
+  const errors=[];
+  renderer.debug.onShaderError=(gl,program,vs,fs)=>{
+    const logs=[gl.getProgramInfoLog(program),gl.getShaderInfoLog(vs),gl.getShaderInfoLog(fs)].filter(Boolean).join(' | ');
+    if(errors.length<2)errors.push(logs.slice(0,280)||'Programul nu a putut fi compilat');
+    console.error('Diagnostic material:',logs);
+  };
+  const minimal=new T.Group(); minimal.name='DIAGNOSTIC_ONLY_simple_lighting';
+  minimal.add(new T.HemisphereLight('#fff2dd','#697a7c',2.5));
+  minimal.add(new T.AmbientLight('#fff1da',1));
+  const direction=new T.DirectionalLight('#fff0d6',1);direction.position.set(3,10,8);minimal.add(direction);
+  scene.add(minimal);minimal.visible=false;
   const unlit=new T.MeshBasicMaterial({color:0xe5d7bc,side:T.DoubleSide,depthTest:true,depthWrite:true});
   const wire=new T.MeshBasicMaterial({color:0x91f5d8,wireframe:true,side:T.DoubleSide,depthTest:true});
   const gallery=new T.Group();gallery.name='DIAGNOSTIC_ONLY_gallery_lighting';scene.add(gallery);
@@ -18,7 +31,7 @@ export function installRenderAudit({T,scene,renderer,camera}) {
   }
   gallery.visible=false;
   let selected='normal';
-  const vals={normal:'Original',gallery:'Lumini galerie',unlit:'Geometrie fără lumină',wire:'Wireframe'};
+  const vals={normal:'Original',gallery:'Lumini galerie',unlit:'Geometrie fără lumină',wire:'Wireframe',minimum:'Materiale originale, lumini simple'};
   const buttons=panel.querySelector('#audit-buttons');
   for(const [name,label] of Object.entries(vals)){
     const b=document.createElement('button');b.type='button';b.textContent=label;
@@ -26,7 +39,10 @@ export function installRenderAudit({T,scene,renderer,camera}) {
     b.onclick=()=>apply(name);buttons.appendChild(b);
   }
   function apply(mode){
-    selected=mode;gallery.visible=mode==='gallery';scene.fog=(mode==='unlit'||mode==='wire')?null:originalFog;
+    selected=mode;gallery.visible=mode==='gallery';minimal.visible=mode==='minimum';
+    for(const {o,visible} of sceneLights)o.visible=mode==='minimum'?false:visible;
+    renderer.shadowMap.enabled=mode==='minimum'?false:shadowSetting;
+    scene.fog=(mode==='unlit'||mode==='wire')?null:originalFog;
     snapshots.forEach(({obj,material},i)=>{
       obj.material=mode==='unlit'?unlit:mode==='wire'?wire:material;
       obj.visible=originalColors[i];
@@ -43,7 +59,8 @@ export function installRenderAudit({T,scene,renderer,camera}) {
       'Mesh-uri: '+mesh+', vizibile: '+visible+'\n'+
       'GPU draw calls: '+draws+', triunghiuri: '+triangles+'\n'+
       'Texturi GPU: '+renderer.info.memory.textures+'\n'+
-      'Context pierdut: '+!!renderer.getContext().isContextLost?.();
+      'Context pierdut: '+!!renderer.getContext().isContextLost?.()+
+      '\nErori shader: '+(errors.length?errors.join(' / '):'niciuna raportată');
   }
   setInterval(stats,1700);setTimeout(stats,650);
   return {apply,stats};

@@ -61,7 +61,7 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
       paintAction?.setEffectiveWeight(0);idleAction?.setEffectiveWeight(0);walkAction.setEffectiveWeight(1);
       let lowest=Infinity;
       for(let i=0;i<8;i++){
-        mixer.setTime(walkClip.duration*i/8);
+        mixer.setTime(walkClip.duration*i/(8*.8));
         model.updateWorldMatrix(true,true);
         lowest=Math.min(lowest,new T.Box3().setFromObject(model,true).min.y);
       }

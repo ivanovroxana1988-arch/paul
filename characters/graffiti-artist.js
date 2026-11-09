@@ -56,6 +56,19 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
       if(!mixer)mixer=new T.AnimationMixer(model);
       walkAction=mixer.clipAction(walkClip);
       walkAction.setEffectiveWeight(0);walkAction.setEffectiveTimeScale(.8);walkAction.play();
+      // Measure the animated shoes over one cycle once, so the walk stays on the floor.
+      const paintWeight=paintAction?.getEffectiveWeight()??0,idleWeight=idleAction?.getEffectiveWeight()??0;
+      paintAction?.setEffectiveWeight(0);idleAction?.setEffectiveWeight(0);walkAction.setEffectiveWeight(1);
+      let lowest=Infinity;
+      for(let i=0;i<8;i++){
+        mixer.setTime(walkClip.duration*i/8);
+        model.updateWorldMatrix(true,true);
+        lowest=Math.min(lowest,new T.Box3().setFromObject(model,true).min.y);
+      }
+      const groundY=root.getWorldPosition(new T.Vector3()).y;
+      if(Number.isFinite(lowest))walkYOffset+=groundY+.02-lowest;
+      walkAction.setEffectiveWeight(0);paintAction?.setEffectiveWeight(paintWeight);idleAction?.setEffectiveWeight(idleWeight);
+      mixer.setTime(0);
     }
     animationReady=true;
     selectable.push(model);

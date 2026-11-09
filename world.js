@@ -9,6 +9,7 @@ import {addLevels} from './levels.js';
 import {addLowerArcadeDetails} from './lower-arcades.js';
 import {createSolarLight} from './solar/solar-light.js?v=7';
 import {createVisibleSky} from './solar/visible-sky.js?v=2';
+import {installRenderAudit} from './render-audit.js?v=1';
 const $=s=>document.querySelector(s),canvas=$('#world'),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const frontLayout=document.body.dataset.layout==='five-arcades'?FIVE_ARCADES:null;
 const roomLayout=frontLayout&&[frontLayout[0],frontLayout[1],frontLayout[3],frontLayout[4]];
@@ -168,6 +169,7 @@ function walkAllowed(x,z,ground=0){
  return Math.hypot(x,z-ROTUNDA_CENTER_Z)<ROTUNDA_RADIUS-1;
 }
 
+installRenderAudit({T,scene,renderer,camera});
 let last=performance.now(),clock=0;function animate(now){const dt=Math.min((now-last)/1000,.04);last=now;clock+=dt;
 if(travel){const t=travel.duration?Math.min((now-travel.start)/travel.duration,1):1,u=t*t*(3-2*t);const dist=u*travel.route.total;let segment=1;while(segment<travel.route.lengths.length-1&&travel.route.lengths[segment]<dist)segment++;const prev=travel.route.lengths[segment-1],span=travel.route.lengths[segment]-prev;camera.position.lerpVectors(travel.route.points[segment-1],travel.route.points[segment],span?(dist-prev)/span:1);const d=travel.look.clone().sub(travel.to),ty=Math.atan2(-d.x,-d.z),tp=Math.atan2(d.y,Math.hypot(d.x,d.z));let diff=T.MathUtils.euclideanModulo(ty-travel.fromYaw+Math.PI,Math.PI*2)-Math.PI;yaw=travel.fromYaw+diff*u;pitch=T.MathUtils.lerp(travel.fromPitch,tp,u);if(t===1){const cb=travel.after;travel=null;cb?.()}}
 else if(touring){tourTime+=dt;const a=frontLayout?Math.sin(tourTime*.12)*1.15:tourTime*.12;camera.position.set(Math.sin(a)*17,3.3+Math.sin(a*.7)*.6,Math.cos(a)*17-1);setLook(new T.Vector3(0,6,-1));location.textContent='ATRIUM / TUR';}

@@ -2,7 +2,6 @@
 // replace architecture or collide with the visitor, artist, or sunlight rays.
 export function addArcadeBackdrops({T,scene,frontLayout,loader=new T.TextureLoader()}) {
   const eligible=scene.children.filter(g=>g.name==='alcove-bay' && !(g.position.x < -16 && g.position.z > 0));
-  const central=frontLayout ? scene.getObjectByName('central-open-passage') : null;
   const backdrops=[];
   loader.load('./assets/fundal-bolta.webp',texture=>{
     texture.colorSpace=T.SRGBColorSpace;
@@ -22,9 +21,7 @@ export function addArcadeBackdrops({T,scene,frontLayout,loader=new T.TextureLoad
     // These are only the closed, unoccupied alcoves. The graffiti artist uses
     // the excluded alcove; rooms for SKIN, CANVAS, SPACE and MOTION are separate.
     for(const alcove of eligible)place(alcove,4.8,7.1,-1.94,'empty-arcade-backdrop');
-    // Preserve the central arch and its navigation. The visual backdrop is far
-    // beyond the opening, past the bounds of the navigable ground floor.
-    if(central)place(central,5.4,7.7,-11.5,'central-passage-backdrop');
   },undefined,()=>console.warn('Fundalul arcadelor nu a putut fi încărcat; păstrăm finisajul original.'));
   return backdrops;
 }
+

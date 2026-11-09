@@ -1,5 +1,5 @@
 import {applyApprovedMarble} from './approved-marble-texture.js?v=1';
-import {applyFloorStone} from './floor-stone-material.js?v=1';
+import {applyFloorStone} from './floor-stone-material.js?v=2';
 // Deterministic fallback maps. Geometry and navigation are unaffected.
 export function makeSurfaceMaps(kind,size=512){
  let seed=kind==='stone'?839:kind==='marble'?973:147;const rnd=()=>((seed=(1664525*seed+1013904223)>>>0)/4294967296);
@@ -48,3 +48,4 @@ export function finishSurfaces({T,scene,stone,paleStone,darkStone,metal,brass,wa
  scene.environmentIntensity=.7;
  return {update(time){normal.offset.set(time*.006,time*.003);},maps:{stone:s,metal:m}};
 }
+

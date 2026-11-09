@@ -85,7 +85,7 @@ let artistRoute=null;
 if(graffiti&&!reduced){
  fetch('./data/parter.json').then(r=>{if(!r.ok)throw Error('Parter route HTTP '+r.status);return r.json()})
  .then(data=>{
-   artistRoute=createArtistRoute({scene,data,canWalk:walkAllowed,floorHeight:levels.floorHeight,showDebug:new URLSearchParams(location.href).has('artistRoute')});
+   artistRoute=createArtistRoute({scene,data,canWalk:walkAllowed,floorHeight:levels.floorHeight,showDebug:new URLSearchParams(window.location.search).has('artistRoute')});
    console.info('Artist graffiti: traseu recalculat din planul conceptual pentru arhitectura NINJA.SYS',artistRoute.stats);
  }).catch(e=>console.error('Traseul artistului nu este disponibil:',e));
 }

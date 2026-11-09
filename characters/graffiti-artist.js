@@ -13,9 +13,32 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
   painting.name='graffiti-painted-wall'; painting.position.set(wallX,wallY,-1.955); root.add(painting);
   const selectable=[];
   let model=null,mixer=null,spray=null,front=false,previous=null,targetRotation=Math.PI,walking=false,walkTime=0,walkYOffset=0;
-  let idleAction=null,paintAction=null,walkAction=null,animationReady=false;
+  let idleAction=null,paintAction=null,walkAction=null,walkUpperAction=null,walkIdleLegAction=null,walkHeadingOffset=Math.PI,animationReady=false;
   const gaitBones={};
   const nozzleLocal=new T.Vector3(0,10.5,0),pointWorld=new T.Vector3();
+  // Soften auto-rigged thigh influence on the waistband; keep each vertex's weights normalized.
+  function stabilizeWaist(){
+    model.traverse(mesh=>{
+      if(!mesh.isSkinnedMesh)return;
+      const bones=mesh.skeleton.bones,hip=bones.findIndex(b=>b.name==='Hips');
+      const left=bones.findIndex(b=>b.name==='LeftUpLeg'),right=bones.findIndex(b=>b.name==='RightUpLeg');
+      const g=mesh.geometry,p=g.getAttribute('position'),j=g.getAttribute('skinIndex'),w=g.getAttribute('skinWeight');
+      if(hip<0||left<0||right<0||!p||!j||!w)return;
+      for(let i=0;i<p.count;i++){
+        const x=p.getX(i),y=p.getY(i);if(Math.abs(x)>.24||y<=.82||y>=1.17)continue;
+        const strength=T.MathUtils.smoothstep(y,.82,1.05);
+        const ids=[j.getX(i),j.getY(i),j.getZ(i),j.getW(i)],values=[w.getX(i),w.getY(i),w.getZ(i),w.getW(i)];
+        let moved=0;
+        for(let k=0;k<4;k++)if(ids[k]===left||ids[k]===right){const d=values[k]*strength;values[k]-=d;moved+=d}
+        if(moved<1e-6)continue;
+        let slot=ids.indexOf(hip);
+        if(slot<0){slot=values.indexOf(Math.min(...values));moved+=values[slot];values[slot]=0;ids[slot]=hip}
+        values[slot]+=moved;j.setXYZW(i,...ids);w.setXYZW(i,...values);
+      }
+      j.needsUpdate=true;w.needsUpdate=true;
+    });
+  }
+
   new GLTFLoader().load('./characters/graffiti-artist.glb',async g=>{
     model=g.scene;model.name='graffiti-artist';
     const bounds=new T.Box3().setFromObject(model),size=bounds.getSize(new T.Vector3());
@@ -54,11 +77,27 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
     }
     if(walkClip){
       if(!mixer)mixer=new T.AnimationMixer(model);
+      // Preserve this artist's own torso and blend only the leg rotations.
+      const legTrack=/^(Left|Right)(UpLeg|Leg|Foot|ToeBase)\.quaternion$/;
+      const walkHips=walkClip.tracks.find(t=>t.name==='Hips.quaternion');
+      const idleHips=idle?.tracks.find(t=>t.name==='Hips.quaternion');
+      if(walkHips&&idleHips){
+        const yaw=t=>new T.Euler().setFromQuaternion(new T.Quaternion().fromArray(t.values),'YXZ').y;
+        walkHeadingOffset=Math.PI+yaw(walkHips)-yaw(idleHips);
+      }
+      if(idle){
+        const upper=idle.clone();upper.name='Artist_walk_body';upper.tracks=upper.tracks.filter(t=>!legTrack.test(t.name));
+        const lower=idle.clone();lower.name='Artist_walk_leg_base';lower.tracks=lower.tracks.filter(t=>legTrack.test(t.name));
+        walkUpperAction=mixer.clipAction(upper).play();walkUpperAction.setEffectiveWeight(0);
+        walkIdleLegAction=mixer.clipAction(lower).play();walkIdleLegAction.setEffectiveWeight(0);
+        walkClip.tracks=walkClip.tracks.filter(t=>legTrack.test(t.name));
+      }
       walkAction=mixer.clipAction(walkClip);
       walkAction.setEffectiveWeight(0);walkAction.setEffectiveTimeScale(.8);walkAction.play();
+      stabilizeWaist();
       // Measure the animated shoes over one cycle once, so the walk stays on the floor.
       const paintWeight=paintAction?.getEffectiveWeight()??0,idleWeight=idleAction?.getEffectiveWeight()??0;
-      paintAction?.setEffectiveWeight(0);idleAction?.setEffectiveWeight(0);walkAction.setEffectiveWeight(1);
+      paintAction?.setEffectiveWeight(0);idleAction?.setEffectiveWeight(0);walkUpperAction?.setEffectiveWeight(1);walkIdleLegAction?.setEffectiveWeight(.4);walkAction.setEffectiveWeight(walkIdleLegAction?.getEffectiveWeight()? .6:1);
       let lowest=Infinity;
       for(let i=0;i<8;i++){
         mixer.setTime(walkClip.duration*i/(8*.8));
@@ -67,7 +106,7 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
       }
       const groundY=root.getWorldPosition(new T.Vector3()).y;
       if(Number.isFinite(lowest))walkYOffset+=groundY+.02-lowest;
-      walkAction.setEffectiveWeight(0);paintAction?.setEffectiveWeight(paintWeight);idleAction?.setEffectiveWeight(idleWeight);
+      walkAction.setEffectiveWeight(0);walkUpperAction?.setEffectiveWeight(0);walkIdleLegAction?.setEffectiveWeight(0);paintAction?.setEffectiveWeight(paintWeight);idleAction?.setEffectiveWeight(idleWeight);
       mixer.setTime(0);
     }
     animationReady=true;
@@ -81,13 +120,13 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
     model.position.set(0,walkYOffset,0);
     if(paintAction)paintAction.setEffectiveWeight(0);
     if(idleAction)idleAction.setEffectiveWeight(walkAction?0:1);
-    if(walkAction)walkAction.setEffectiveWeight(1);
+    if(walkAction){walkUpperAction?.setEffectiveWeight(1);walkIdleLegAction?.setEffectiveWeight(.4);walkAction.setEffectiveWeight(walkIdleLegAction?.getEffectiveWeight()? .6:1);}
   }
   function setWalkPose(point,heading){
     if(!model)return;
     if(!walking)startWalking();
     model.position.set(point.x,point.y+walkYOffset,point.z);
-    targetRotation=heading+(walkAction?Math.PI:0);
+    targetRotation=heading+(walkAction?walkHeadingOffset:0);
     const diff=T.MathUtils.euclideanModulo(targetRotation-model.rotation.y+Math.PI,2*Math.PI)-Math.PI;
     model.rotation.y+=diff*.23;
   }

@@ -1,5 +1,5 @@
 import {FIVE_ARCADES} from './arcade-layout.js';
-import {createGraffitiArtist} from './characters/graffiti-artist.js';
+import {createGraffitiArtist} from './characters/graffiti-artist.js?v=2';
 import {createArtistRoute} from './characters/artist-route.js';
 import * as T from './vendor/three.module.js';
 import {finishSurfaces} from './surface-finish.js?v=3';
@@ -78,7 +78,9 @@ const lowerParts=addLowerArcadeDetails({T,scene,roots:roomRoots,stone,paleStone,
 const surfaceFinish=finishSurfaces({T,scene,stone,paleStone,darkStone,metal,brass,waterMat,roots:roomRoots});
 // The dark alcove immediately to the left of SKIN in the reference view.
 const graffitiAlcove=scene.children.find(o=>o.name==='alcove-bay'&&o.position.x< -16&&o.position.z>0);
-const graffiti=graffitiAlcove?createGraffitiArtist({alcove:graffitiAlcove,scene,reducedMotion:reduced}):null;
+// Keep the walking character and its route independent from the mural artist.
+const graffiti=graffitiAlcove?createGraffitiArtist({alcove:graffitiAlcove,scene,reducedMotion:reduced,drawOnWall:false}):null;
+const muralArtist=graffitiAlcove?createGraffitiArtist({alcove:graffitiAlcove,scene,reducedMotion:reduced,modelUrl:'./characters/artista-graffiti.glb',handOffset:[0,9,-7.4],characterHeight:1.72}):null;
 // The route is a user-drawn 268-point plan from the conceptual floor map.
 // Reproject through A* to the ACTUAL walkable NINJA.SYS floor: pool, void and wall colliders are excluded.
 let artistRoute=null;
@@ -155,7 +157,7 @@ function showZone(z){lastWalkZone=z.id;$('#skinActions').hidden=z.id!=='skin';$(
 function visit(id){const z=zoneData.find(z=>z.id===id);$('#map').hidden=true;$('#mapToggle').setAttribute('aria-expanded','false');$('#zoneInfo').hidden=true;go(zonePoint(z,0,1.85,-4.5).toArray(),zonePoint(z,0,3,-12).toArray(),()=>showZone(z));}
 document.querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>visit(b.dataset.zone));$('#enter').onclick=()=>{go([8.8,1.85,7.8],[0,5,-5]);canvas.focus()};function reset(){ $('#zoneInfo').hidden=true;document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));location.textContent='ATRIUM / INTRARE';go([0,3.8,15.8],[0,5.2,-8]);}$('#home').onclick=e=>{e.preventDefault();reset()};$('#reset').onclick=()=>{reset();$('#map').hidden=true;$('#mapToggle').setAttribute('aria-expanded','false')};$('#zoneClose').onclick=()=>$('#zoneInfo').hidden=true;$('#mapToggle').onclick=()=>{const m=$('#map');m.hidden=!m.hidden;$('#mapToggle').setAttribute('aria-expanded',String(!m.hidden))};$('#mapClose').onclick=()=>{$('#map').hidden=true;$('#mapToggle').setAttribute('aria-expanded','false')};$('#tour').onclick=()=>{hideIntro();travel=null;touring=!touring;tourTime=0;$('#tour').setAttribute('aria-pressed',String(touring));$('#zoneInfo').hidden=true;};$('#quality').onclick=()=>{low=!low;renderer.setPixelRatio(low?1:Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=!low;dust.visible=!low;$('#quality').textContent=low?'Calitate: economică':'Calitate: ridicată';$('#quality').setAttribute('aria-pressed',String(low))};
 const movementKeys=['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'];window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if($('#studyDialog').open||e.target.closest('input,button,a,select,textarea'))return;if(movementKeys.includes(k)){e.preventDefault();keys.add(k);hideIntro();travel=null;touring=false;$('#tour').setAttribute('aria-pressed','false')}if(k==='escape'){travel=null;keys.clear();touchKeys.clear();$('#zoneInfo').hidden=true;$('#map').hidden=true;$('#mapToggle').setAttribute('aria-expanded','false')}});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{keys.clear();touchKeys.clear();drag=null});
-canvas.addEventListener('pointerdown',e=>{canvas.focus();drag={x:e.clientX,y:e.clientY,id:e.pointerId};moved=false;canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>2)moved=true;if(moved){travel=null;touring=false;$('#tour').setAttribute('aria-pressed','false');yaw-=dx*.004;pitch=T.MathUtils.clamp(pitch-dy*.003,-1.1,1.1);}drag.x=e.clientX;drag.y=e.clientY});const ray=new T.Raycaster(),mouse=new T.Vector2();canvas.addEventListener('pointerup',e=>{if(drag&&!moved){mouse.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);ray.setFromCamera(mouse,camera);const hit=ray.intersectObjects([...clickable,...details.selectable,...(graffiti?.selectable||[])],true)[0];if(hit){if(graffiti?.ownsObject(hit.object))graffiti.turn();else if(hit.object.userData.study!==undefined)openStudy(hit.object.userData.study);else if(hit.object.userData.zone)visit(hit.object.userData.zone)}}drag=null});canvas.addEventListener('pointercancel',()=>drag=null);
+canvas.addEventListener('pointerdown',e=>{canvas.focus();drag={x:e.clientX,y:e.clientY,id:e.pointerId};moved=false;canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>2)moved=true;if(moved){travel=null;touring=false;$('#tour').setAttribute('aria-pressed','false');yaw-=dx*.004;pitch=T.MathUtils.clamp(pitch-dy*.003,-1.1,1.1);}drag.x=e.clientX;drag.y=e.clientY});const ray=new T.Raycaster(),mouse=new T.Vector2();canvas.addEventListener('pointerup',e=>{if(drag&&!moved){mouse.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);ray.setFromCamera(mouse,camera);const hit=ray.intersectObjects([...clickable,...details.selectable,...(graffiti?.selectable||[]),...(muralArtist?.selectable||[])],true)[0];if(hit){if(muralArtist?.ownsObject(hit.object))muralArtist.turn();else if(graffiti?.ownsObject(hit.object))graffiti.turn();else if(hit.object.userData.study!==undefined)openStudy(hit.object.userData.study);else if(hit.object.userData.zone)visit(hit.object.userData.zone)}}drag=null});canvas.addEventListener('pointercancel',()=>drag=null);
 document.querySelectorAll('[data-move]').forEach(b=>{b.addEventListener('pointerdown',e=>{e.preventDefault();hideIntro();travel=null;touring=false;$('#tour').setAttribute('aria-pressed','false');touchKeys.add(b.dataset.move);b.setPointerCapture(e.pointerId)});for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,()=>touchKeys.delete(b.dataset.move));});
 function walkAllowed(x,z,ground=0){
  if(!levels.canWalk(x,z,ground))return false;
@@ -196,7 +198,7 @@ if(frontLayout)camera.position.y=Math.max(camera.position.y,levels.floorHeight(c
 if(artistRoute&&graffiti?.hasModel()&&!reduced){
  const pose=artistRoute.update(dt,1.05);graffiti.setWalkPose(pose.position,pose.heading);
 }
-graffiti?.update(dt);
+graffiti?.update(dt);muralArtist?.update(dt);
 if(useMobileLightBudget&&Math.floor(clock*2)!==Math.floor((clock-dt)*2))selectMobileLights();
 $('#mapDot').setAttribute('cx',String(160+camera.position.x*4.5));$('#mapDot').setAttribute('cy',String(145+(camera.position.z-ROTUNDA_CENTER_Z)*4.5));visibleSky.follow(camera);renderer.render(scene,camera);requestAnimationFrame(animate)}
 // Optional read-only runtime diagnostics: append ?diagnostic=1 to the URL.
@@ -207,7 +209,7 @@ if(new URLSearchParams(window.location.search).get('diagnostic')==='1'){
  let assetStatus='verificare...';const faults=[];
  window.addEventListener('error',ev=>{if(faults.length<3)faults.push((ev.message||'error').slice(0,140))});
  window.addEventListener('unhandledrejection',ev=>{if(faults.length<3)faults.push(String(ev.reason).slice(0,140))});
- Promise.all(['assets/marmura-albedo.png','assets/pardoseala-albedo.png','assets/paul-upper-segment-v1.glb','characters/graffiti-artist.glb'].map(url=>
+ Promise.all(['assets/marmura-albedo.png','assets/pardoseala-albedo.png','assets/paul-upper-segment-v1.glb','characters/graffiti-artist.glb','characters/artista-graffiti.glb'].map(url=>
    fetch(url,{method:'HEAD',cache:'no-store'}).then(r=>r.ok).catch(()=>false)
  )).then(items=>{assetStatus=items.filter(Boolean).length+'/4 fișiere accesibile'});
  const writeAudit=()=>{
@@ -224,4 +226,10 @@ if(new URLSearchParams(window.location.search).get('diagnostic')==='1'){
  };
  setInterval(writeAudit,1800);setTimeout(writeAudit,800);
 }
-window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});if(new URLSearchParams(window.location.search).get('artist')==='1')requestAnimationFrame(findGraffitiArtist);renderer.render(scene,camera);$('#loader').style.opacity='0';setTimeout(()=>$('#loader').remove(),650);requestAnimationFrame(animate);
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});const muralFocus=new URLSearchParams(window.location.search).get('mural');
+if(muralFocus==='1'&&graffitiAlcove){
+  graffitiAlcove.updateWorldMatrix(true,false);
+  const from=graffitiAlcove.localToWorld(new T.Vector3(0,1.85,3.1));
+  const look=graffitiAlcove.localToWorld(new T.Vector3(0,1.45,-1.49));
+  requestAnimationFrame(()=>go(from.toArray(),look.toArray()));
+}else if(new URLSearchParams(window.location.search).get('artist')==='1')requestAnimationFrame(findGraffitiArtist);renderer.render(scene,camera);$('#loader').style.opacity='0';setTimeout(()=>$('#loader').remove(),650);requestAnimationFrame(animate);

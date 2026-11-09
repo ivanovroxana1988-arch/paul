@@ -2,23 +2,23 @@ import * as T from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/loaders/GLTFLoader.js';
 
 // Self-contained character module. The parent is the left alcove in the hall.
-export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
+export function createGraffitiArtist({alcove,scene,reducedMotion=false,modelUrl='./characters/graffiti-artist.glb',drawOnWall=true,handOffset=[0,10,-8.2],characterHeight=1.82}) {
   const root=new T.Group(); root.name='graffiti-artist-module'; alcove.add(root);
   const drawing=document.createElement('canvas'); drawing.width=1024; drawing.height=512;
   const context=drawing.getContext('2d'); const ink=new T.CanvasTexture(drawing);
   ink.colorSpace=T.SRGBColorSpace;
   const width=2.75,height=1.35,wallX=0,wallY=1.79;
   const painting=new T.Mesh(new T.PlaneGeometry(width,height),new T.MeshBasicMaterial({map:ink,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}));
-  painting.name='graffiti-painted-wall'; painting.position.set(wallX,wallY,-1.955); root.add(painting);
+  painting.name='graffiti-painted-wall'; painting.position.set(wallX,wallY,-1.955); if(drawOnWall)root.add(painting);
   const selectable=[];
   let model=null,mixer=null,spray=null,front=false,previous=null,targetRotation=Math.PI,walking=false,walkTime=0,walkYOffset=0;
   let idleAction=null,paintAction=null;
   const gaitBones={};
   const nozzleLocal=new T.Vector3(0,10.5,0),pointWorld=new T.Vector3();
-  new GLTFLoader().load('./characters/graffiti-artist.glb',g=>{
+  new GLTFLoader().load(modelUrl,g=>{
     model=g.scene;model.name='graffiti-artist';
     const bounds=new T.Box3().setFromObject(model),size=bounds.getSize(new T.Vector3());
-    model.scale.setScalar(1.82/size.y); model.rotation.y=Math.PI; root.add(model);
+    model.scale.setScalar(characterHeight/size.y); model.rotation.y=Math.PI; root.add(model);
     model.updateMatrixWorld(true); const adjusted=new T.Box3().setFromObject(model);
     model.position.set(0,.09-adjusted.min.y,-1.49);
     walkYOffset=model.position.y;
@@ -27,7 +27,7 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
     if(hand){
       spray=new T.Group();spray.name='graffiti-spray';
       // Hand bone uses centimeters; -Z puts the cylinder on the palm side.
-      spray.position.set(0,10,-8.2);
+      spray.position.set(...handOffset);
       const metal=new T.MeshStandardMaterial({color:0x9ba19a,metalness:.55,roughness:.38});
       const bottle=new T.Mesh(new T.CylinderGeometry(3,3,16,20),metal);
       const collar=new T.Mesh(new T.CylinderGeometry(2.15,2.6,1.2,20),metal);collar.position.y=8.4;
@@ -79,7 +79,7 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
       }
       previous=null;return;
     }
-    if(!reducedMotion&&spray&&!front&&Math.abs(model.rotation.y-Math.PI)<.03){
+    if(drawOnWall&&!reducedMotion&&spray&&!front&&Math.abs(model.rotation.y-Math.PI)<.03){
       root.updateWorldMatrix(true,true);pointWorld.copy(nozzleLocal);spray.localToWorld(pointWorld);root.worldToLocal(pointWorld);
       const u=(pointWorld.x-wallX)/width+.5,v=.5-(pointWorld.y-wallY)/height;
       const current={x:u*drawing.width,y:v*drawing.height};

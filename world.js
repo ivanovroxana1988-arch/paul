@@ -3,7 +3,7 @@ import {createGraffitiArtist} from './characters/graffiti-artist.js';
 import * as T from './vendor/three.module.js';
 import {finishSurfaces} from './surface-finish.js?v=3';
 import {addAtelierDetail} from './atelier-detail.js';
-import {buildRotunda,ROTUNDA_RADIUS,ROTUNDA_CENTER_Z} from './rotunda.js?v=5';
+import {buildRotunda,ROTUNDA_RADIUS,ROTUNDA_CENTER_Z} from './rotunda.js?v=6';
 import {addLevels} from './levels.js';
 import {addLowerArcadeDetails} from './lower-arcades.js';
 import {createSolarLight} from './solar/solar-light.js?v=5';
@@ -165,3 +165,4 @@ if(frontLayout)camera.position.y=Math.max(camera.position.y,levels.floorHeight(c
 graffiti?.update(dt);
 $('#mapDot').setAttribute('cx',String(160+camera.position.x*4.5));$('#mapDot').setAttribute('cy',String(145+(camera.position.z-ROTUNDA_CENTER_Z)*4.5));visibleSky.follow(camera);renderer.render(scene,camera);requestAnimationFrame(animate)}
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});if(new URLSearchParams(window.location.search).get('artist')==='1')requestAnimationFrame(findGraffitiArtist);renderer.render(scene,camera);$('#loader').style.opacity='0';setTimeout(()=>$('#loader').remove(),650);requestAnimationFrame(animate);
+

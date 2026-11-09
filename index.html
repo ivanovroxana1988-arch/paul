@@ -11,7 +11,7 @@ header{position:absolute;top:20px;left:24px;z-index:2;pointer-events:none}h1{fon
 <label><input id="showRoute" type="checkbox" checked> Afișează traseul</label>
 <label><input id="showUpper" type="checkbox" checked> Afișează etajele și cupola</label>
 <label>Viteza mersului <input id="speed" type="range" min=".35" max="2.5" step=".05" value="1"></label>
-<small>Trage cu mouse-ul pentru a roti. Scroll pentru zoom. Click dreapta pentru deplasarea camerei.</small><div id="status">Se inițializează scena 3D…</div><div id="assetStatus" style="color:#e6be89;font-size:11px;margin-top:6px">Se încarcă modelul graffiti original…</div></section>
+<small>Trage cu mouse-ul pentru a roti. Scroll pentru zoom. Click dreapta pentru deplasarea camerei.</small><div id="status">Se inițializează scena 3D…</div><div id="assetStatus" style="color:#e6be89;font-size:11px;margin-top:6px">Se încarcă modelul graffiti original…</div><a href="artspace.html" style="display:inline-block;margin-top:12px;color:#9ff3dc;font-weight:600">Deschide atelierul 3D original ↗</a></section>
 <div id="tips">Reconstrucție conceptuală, nu codul scenei originale</div>
 <script type="module">
 import * as THREE from 'three';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -151,3 +151,4 @@ document.querySelector('#showUpper').onchange=e=>upper.visible=e.target.checked;
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 let prev=performance.now();function frame(t){const dt=Math.min(.06,(t-prev)/1000);prev=t;tick(dt);orbit.update();renderer.render(scene,camera);requestAnimationFrame(frame)}requestAnimationFrame(frame);
 </script></body></html>
+

@@ -13,7 +13,7 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
   painting.name='graffiti-painted-wall'; painting.position.set(wallX,wallY,-1.955); root.add(painting);
   const selectable=[];
   let model=null,mixer=null,spray=null,front=false,previous=null,targetRotation=Math.PI,walking=false,walkTime=0,walkYOffset=0;
-  let idleAction=null,paintAction=null,walkAction=null,animationReady=false;
+  let idleAction=null,paintAction=null,walkAction=null,walkUpperAction=null,walkHeadingOffset=Math.PI,animationReady=false;
   const gaitBones={};
   const nozzleLocal=new T.Vector3(0,10.5,0),pointWorld=new T.Vector3();
   new GLTFLoader().load('./characters/graffiti-artist.glb',async g=>{
@@ -54,11 +54,38 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
     }
     if(walkClip){
       if(!mixer)mixer=new T.AnimationMixer(model);
+      if(idle){
+        // Align the motion's neutral joint rotations with the artist's own bind pose.
+        const legTrack=/^(Left|Right)(UpLeg|Leg|Foot|ToeBase)\.quaternion$/;
+        const walkHips=walkClip.tracks.find(t=>t.name==='Hips.quaternion');
+        const idleHips=idle.tracks.find(t=>t.name==='Hips.quaternion');
+        if(walkHips&&idleHips){
+          const yaw=t=>new T.Euler().setFromQuaternion(new T.Quaternion().fromArray(t.values),'YXZ').y;
+          walkHeadingOffset=Math.PI+yaw(walkHips)-yaw(idleHips);
+        }
+        const upper=idle.clone();upper.name='Artist_walk_body';upper.tracks=upper.tracks.filter(t=>!legTrack.test(t.name));
+        walkUpperAction=mixer.clipAction(upper).play();walkUpperAction.setEffectiveWeight(0);
+        walkClip.tracks=walkClip.tracks.filter(t=>legTrack.test(t.name));
+        for(const track of walkClip.tracks){
+          const bone=model.getObjectByName(track.name.split('.')[0]);if(!bone)continue;
+          const base=bone.quaternion.clone(),values=track.values,first=new T.Quaternion().fromArray(values),sum=new T.Vector4();
+          for(let i=0;i<values.length;i+=4){
+            const q=new T.Quaternion().fromArray(values,i);
+            if(q.dot(first)<0)q.set(-q.x,-q.y,-q.z,-q.w);
+            sum.add(new T.Vector4(q.x,q.y,q.z,q.w));
+          }
+          const inverse=new T.Quaternion(sum.x,sum.y,sum.z,sum.w).normalize().invert();
+          for(let i=0;i<values.length;i+=4){
+            const q=new T.Quaternion().fromArray(values,i).premultiply(inverse).premultiply(base).normalize();
+            q.toArray(values,i);
+          }
+        }
+      }
       walkAction=mixer.clipAction(walkClip);
       walkAction.setEffectiveWeight(0);walkAction.setEffectiveTimeScale(.8);walkAction.play();
       // Measure the animated shoes over one cycle once, so the walk stays on the floor.
       const paintWeight=paintAction?.getEffectiveWeight()??0,idleWeight=idleAction?.getEffectiveWeight()??0;
-      paintAction?.setEffectiveWeight(0);idleAction?.setEffectiveWeight(0);walkAction.setEffectiveWeight(1);
+      paintAction?.setEffectiveWeight(0);idleAction?.setEffectiveWeight(0);walkUpperAction?.setEffectiveWeight(1);walkAction.setEffectiveWeight(1);
       let lowest=Infinity;
       for(let i=0;i<8;i++){
         mixer.setTime(walkClip.duration*i/(8*.8));
@@ -67,7 +94,7 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
       }
       const groundY=root.getWorldPosition(new T.Vector3()).y;
       if(Number.isFinite(lowest))walkYOffset+=groundY+.02-lowest;
-      walkAction.setEffectiveWeight(0);paintAction?.setEffectiveWeight(paintWeight);idleAction?.setEffectiveWeight(idleWeight);
+      walkAction.setEffectiveWeight(0);walkUpperAction?.setEffectiveWeight(0);paintAction?.setEffectiveWeight(paintWeight);idleAction?.setEffectiveWeight(idleWeight);
       mixer.setTime(0);
     }
     animationReady=true;
@@ -81,13 +108,13 @@ export function createGraffitiArtist({alcove,scene,reducedMotion=false}) {
     model.position.set(0,walkYOffset,0);
     if(paintAction)paintAction.setEffectiveWeight(0);
     if(idleAction)idleAction.setEffectiveWeight(walkAction?0:1);
-    if(walkAction)walkAction.setEffectiveWeight(1);
+    if(walkAction){walkUpperAction?.setEffectiveWeight(1);walkAction.setEffectiveWeight(1);}
   }
   function setWalkPose(point,heading){
     if(!model)return;
     if(!walking)startWalking();
     model.position.set(point.x,point.y+walkYOffset,point.z);
-    targetRotation=heading+(walkAction?Math.PI:0);
+    targetRotation=heading+(walkAction?walkHeadingOffset:0);
     const diff=T.MathUtils.euclideanModulo(targetRotation-model.rotation.y+Math.PI,2*Math.PI)-Math.PI;
     model.rotation.y+=diff*.23;
   }

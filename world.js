@@ -179,4 +179,29 @@ if(artistRoute&&graffiti?.hasModel()&&!reduced){
 }
 graffiti?.update(dt);
 $('#mapDot').setAttribute('cx',String(160+camera.position.x*4.5));$('#mapDot').setAttribute('cy',String(145+(camera.position.z-ROTUNDA_CENTER_Z)*4.5));visibleSky.follow(camera);renderer.render(scene,camera);requestAnimationFrame(animate)}
+// Optional read-only runtime diagnostics: append ?diagnostic=1 to the URL.
+if(new URLSearchParams(window.location.search).get('diagnostic')==='1'){
+ const audit=document.createElement('output');audit.id='scene-diagnostic';
+ audit.style.cssText='position:fixed;z-index:9999;bottom:12px;left:12px;max-width:calc(100vw - 24px);padding:12px 14px;border:1px solid #8addc1;background:#071516eE;color:#c9f6e8;font:12px/1.55 monospace;white-space:pre-wrap;pointer-events:none;border-radius:8px';
+ document.body.appendChild(audit);
+ let assetStatus='verificare...';const faults=[];
+ window.addEventListener('error',ev=>{if(faults.length<3)faults.push((ev.message||'error').slice(0,140))});
+ window.addEventListener('unhandledrejection',ev=>{if(faults.length<3)faults.push(String(ev.reason).slice(0,140))});
+ Promise.all(['assets/marmura-albedo.png','assets/pardoseala-albedo.png','assets/paul-upper-segment-v1.glb','characters/graffiti-artist.glb'].map(url=>
+   fetch(url,{method:'HEAD',cache:'no-store'}).then(r=>r.ok).catch(()=>false)
+ )).then(items=>{assetStatus=items.filter(Boolean).length+'/4 fișiere accesibile'});
+ const writeAudit=()=>{
+  let meshes=0,visible=0,lit=0;
+  scene.traverse(o=>{if(o.isMesh){meshes++;if(o.visible)visible++;const mats=Array.isArray(o.material)?o.material:[o.material];if(mats.some(m=>m&&m.isMeshStandardMaterial))lit++}});
+  const gl=renderer.getContext(),lost=gl.isContextLost?.()||false;
+  audit.textContent='NINJA.SYS / DIAGNOSTIC\n'+
+   'Mod solar: '+($('#sunMode')?.textContent||'necunoscut')+'\n'+
+   'Mesh-uri: '+meshes+' (vizibile '+visible+', cu material iluminat '+lit+')\n'+
+   'Desenări GPU: '+renderer.info.render.calls+', triunghiuri: '+renderer.info.render.triangles+'\n'+
+   'Texturi GPU: '+renderer.info.memory.textures+'; context pierdut: '+lost+'\n'+
+   'Resurse: '+assetStatus+
+   (faults.length?'\nERORI: '+faults.join('; '):'');
+ };
+ setInterval(writeAudit,1800);setTimeout(writeAudit,800);
+}
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});if(new URLSearchParams(window.location.search).get('artist')==='1')requestAnimationFrame(findGraffitiArtist);renderer.render(scene,camera);$('#loader').style.opacity='0';setTimeout(()=>$('#loader').remove(),650);requestAnimationFrame(animate);

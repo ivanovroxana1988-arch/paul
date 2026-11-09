@@ -1,0 +1,3 @@
+Retargeting code and canonical data: three.ws, Apache License 2.0, https://github.com/nirholas/three.ws
+Walking keyframes: soldier-walk, from the three.js Soldier.glb example, as distributed by three.ws; source attribution: https://github.com/nirholas/three.ws/blob/main/public/animations/LICENSES.md
+The walking JSON is reduced to body quaternion tracks for the target skeleton.

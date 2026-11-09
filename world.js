@@ -201,11 +201,12 @@ else if(!$('#studyDialog').open){const forward=Number(keys.has('w')||keys.has('a
 camera.rotation.set(pitch,yaw,0);if(!reduced){surfaceFinish.update(clock);details.update(clock);sculpture.rotation.y=Math.sin(clock*.1)*.16;sculpture.position.y=1.5+Math.sin(clock*.6)*.12;galleryObjects.forEach((m,i)=>{m.rotation.y=clock*(.12+i*.05);m.rotation.x=Math.sin(clock*.3)*.15});ripples.forEach((m,i)=>{const t=((clock*.08+i/7)%1);m.scale.setScalar(.4+t*4.2);m.material.opacity=(1-t)*.15});banners.forEach((b,k)=>{const p=b.geometry.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i);p.setZ(i,Math.sin(y*.8+clock*.65+k)*.07*(3.5-y)/7)}p.needsUpdate=true;b.geometry.computeVertexNormals()});dust.rotation.y=clock*.008;guide.rotation.y=-.2+Math.sin(clock*.4)*.05;}
 if(frontLayout)camera.position.y=Math.max(camera.position.y,levels.floorHeight(camera.position.x,camera.position.z)+1.65);
 if(artistRoute&&graffiti?.hasModel()&&!reduced){
- const pose=artistRoute.update(dt,1.05);graffiti.setWalkPose(pose.position,pose.heading);
+ const pose=artistRoute.update(dt,1.05);graffiti.setWalkPose(pose.position,pose.heading,dt);
  if(new URLSearchParams(window.location.search).has('artistFollow')){
   hideIntro();travel=null;touring=false;
-  const offset=new T.Vector3(-Math.sin(pose.heading)*4,2.5,-Math.cos(pose.heading)*4);
-  camera.position.copy(pose.position).add(offset);
+  const heading=graffiti.getHeading();
+  const offset=new T.Vector3(-Math.sin(heading)*4,2.5,-Math.cos(heading)*4);
+  camera.position.lerp(pose.position.clone().add(offset),1-Math.exp(-6*dt));
   setLook(new T.Vector3(pose.position.x,pose.position.y+1.2,pose.position.z));
  }
 }

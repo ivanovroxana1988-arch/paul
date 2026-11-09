@@ -13,9 +13,7 @@ export function createSolarLight({T, scene, sun, sky, ambient, fill, onChange = 
   const coolFill = new T.Color('#7fb6bf'), warmFill = new T.Color('#e98b72');
   // Start with a well-lit architectural demonstration. The visitor can still choose
   // real Bucharest time, sunrise, sunset or any hour via the existing controls.
-  let mode = 'manual', selected = 13 * 60 + 20,
-      previewDate = new Date(Date.UTC(bucharestParts(new Date()).year, 5, 21, 12)),
-      timer = null;
+  let mode = 'live', selected = 720, previewDate = null, timer = null;
   // Interior exhibition lighting is independent of the astronomical sun.
   // It keeps the building recognizable at night without falsifying the sun/shadows.
   const galleryFill = new T.HemisphereLight('#ffe1bc', '#536774', 1.0);

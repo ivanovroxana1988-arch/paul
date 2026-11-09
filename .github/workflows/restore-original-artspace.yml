@@ -1,0 +1,57 @@
+name: Restore original PAUL Artspace source
+on:
+  push:
+    branches:
+      - restore/original-artspace
+    paths:
+      - .github/workflows/restore-original-artspace.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: restore/original-artspace
+          persist-credentials: true
+      - name: Download exact uploaded project
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --connect-timeout 20 --max-time 180 \
+            'https://v3b.fal.media/files/b/0ab1cc5f/IILZi7Fij7MGqLvoH7oHI_paul-artspace-github%20%281%29.zip' \
+            -o /tmp/paul-original.zip
+          echo '0d0b0a3e26316990fcbb109e5a2478c0ec3e14a7bd39734be18f782b0a08bbb8  /tmp/paul-original.zip' | sha256sum -c -
+      - name: Restore static scene files safely
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import zipfile, pathlib
+          root=pathlib.Path.cwd().resolve()
+          with zipfile.ZipFile('/tmp/paul-original.zip') as z:
+              for item in z.infolist():
+                  target=(root/item.filename).resolve()
+                  if not target.is_relative_to(root) or item.filename.startswith('.github/') or item.is_dir():
+                      continue
+                  target.parent.mkdir(parents=True,exist_ok=True)
+                  target.write_bytes(z.read(item))
+          PY
+          test -f world.js
+          test -f index.html
+          test -f vendor/three.module.js
+          test -f characters/graffiti-artist.glb
+      - name: Commit restored original architecture to review branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'Restore original NINJA.SYS Paul Artspace scene and assets'
+            git push origin HEAD:restore/original-artspace
+          fi

@@ -168,6 +168,25 @@ function walkAllowed(x,z,ground=0){
  return Math.hypot(x,z-ROTUNDA_CENTER_Z)<ROTUNDA_RADIUS-1;
 }
 
+// Low uniform limits on mobile GPUs cannot support every local light at once.
+// Keep the astronomical sun and ambient lights; choose nearby gallery lights.
+const glContext=renderer.getContext();
+const useMobileLightBudget=glContext.getParameter(glContext.MAX_FRAGMENT_UNIFORM_VECTORS)<=256;
+const budgetedLights=[];
+if(useMobileLightBudget){
+ scene.traverse(o=>{if((o.isPointLight||o.isSpotLight)&&o.visible)budgetedLights.push(o)});
+}
+const lightWorldPosition=new T.Vector3();
+function selectMobileLights(){
+ if(!useMobileLightBudget)return;
+ scene.updateMatrixWorld(true);
+ for(const [kind,limit] of [['isPointLight',6],['isSpotLight',2]]){
+  const ranked=budgetedLights.filter(o=>o[kind]).map(o=>{o.getWorldPosition(lightWorldPosition);return {o,d:lightWorldPosition.distanceToSquared(camera.position)}});
+  ranked.sort((a,b)=>a.d-b.d);
+  ranked.forEach(({o},i)=>{o.visible=i<limit});
+ }
+}
+selectMobileLights();
 let last=performance.now(),clock=0;function animate(now){const dt=Math.min((now-last)/1000,.04);last=now;clock+=dt;
 if(travel){const t=travel.duration?Math.min((now-travel.start)/travel.duration,1):1,u=t*t*(3-2*t);const dist=u*travel.route.total;let segment=1;while(segment<travel.route.lengths.length-1&&travel.route.lengths[segment]<dist)segment++;const prev=travel.route.lengths[segment-1],span=travel.route.lengths[segment]-prev;camera.position.lerpVectors(travel.route.points[segment-1],travel.route.points[segment],span?(dist-prev)/span:1);const d=travel.look.clone().sub(travel.to),ty=Math.atan2(-d.x,-d.z),tp=Math.atan2(d.y,Math.hypot(d.x,d.z));let diff=T.MathUtils.euclideanModulo(ty-travel.fromYaw+Math.PI,Math.PI*2)-Math.PI;yaw=travel.fromYaw+diff*u;pitch=T.MathUtils.lerp(travel.fromPitch,tp,u);if(t===1){const cb=travel.after;travel=null;cb?.()}}
 else if(touring){tourTime+=dt;const a=frontLayout?Math.sin(tourTime*.12)*1.15:tourTime*.12;camera.position.set(Math.sin(a)*17,3.3+Math.sin(a*.7)*.6,Math.cos(a)*17-1);setLook(new T.Vector3(0,6,-1));location.textContent='ATRIUM / TUR';}
@@ -178,6 +197,7 @@ if(artistRoute&&graffiti?.hasModel()&&!reduced){
  const pose=artistRoute.update(dt,1.05);graffiti.setWalkPose(pose.position,pose.heading);
 }
 graffiti?.update(dt);
+if(useMobileLightBudget&&Math.floor(clock*2)!==Math.floor((clock-dt)*2))selectMobileLights();
 $('#mapDot').setAttribute('cx',String(160+camera.position.x*4.5));$('#mapDot').setAttribute('cy',String(145+(camera.position.z-ROTUNDA_CENTER_Z)*4.5));visibleSky.follow(camera);renderer.render(scene,camera);requestAnimationFrame(animate)}
 // Optional read-only runtime diagnostics: append ?diagnostic=1 to the URL.
 if(new URLSearchParams(window.location.search).get('diagnostic')==='1'){

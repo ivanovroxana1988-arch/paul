@@ -53,7 +53,76 @@ piece(new THREE.CapsuleGeometry(.25,.69,4,8),jacket,0,1.17,0);piece(new THREE.Sp
 const legA=piece(new THREE.CapsuleGeometry(.085,.61,3,8),jeans,-.12,.44,0),legB=piece(new THREE.CapsuleGeometry(.085,.61,3,8),jeans,.12,.44,0);
 const armA=piece(new THREE.CapsuleGeometry(.075,.45,3,8),jacket,-.35,1.26,0),armB=piece(new THREE.CapsuleGeometry(.075,.45,3,8),jacket,.35,1.26,0);
 const spray=piece(new THREE.CylinderGeometry(.055,.055,.20,10),new THREE.MeshStandardMaterial({color:0xe5b34e,metalness:.6}),.39,.96,.12);
-// Optional original character. The fallback avatar remains until the asset is uploaded to /assets.
+// The GLB has no built-in skin or animations. Build a procedural Three.js skeleton
+// with spatially estimated skin weights. This is a prototype, not an artist-verified rig.
+let gaitRig=null,walkClock=0,loadedOriginal=false;
+function smooth(a,b,v){const t=THREE.MathUtils.clamp((v-a)/(b-a),0,1);return t*t*(3-2*t)}
+function makeGaitRig(root){
+  const candidates=[];root.traverse(o=>{if(o.isMesh&&!o.isSkinnedMesh&&o.geometry?.attributes?.position)candidates.push(o)});
+  if(candidates.length!==1)throw Error('Rigging automat disponibil momentan doar pentru un singur mesh');
+  const mesh=candidates[0],geo=mesh.geometry.clone(),pos=geo.getAttribute('position');
+  geo.computeBoundingBox();const b=geo.boundingBox,h=b.max.y-b.min.y,w=b.max.x-b.min.x;
+  if(h<.01||w<.01)throw Error('Modelul are dimensiuni invalide');
+  const min=b.min.y,mid=(b.min.x+b.max.x)/2;
+  // Naming and orientation are geometric approximations based on this exact GLB.
+  const skeletonRoot=new THREE.Bone();skeletonRoot.name='HipsRoot';
+  function limb(name,x,y,z,parent=skeletonRoot){
+    const bone=new THREE.Bone();bone.name=name;bone.position.set(x,y,z);parent.add(bone);return bone;
+  }
+  const hipY=min+h*.51,kneeY=min+h*.255,shoulderY=min+h*.77,elbowY=min+h*.59;
+  const LHip=limb('LeftHip',mid-w*.155,hipY,0),RHip=limb('RightHip',mid+w*.155,hipY,0);
+  const LKnee=limb('LeftKnee',0,kneeY-hipY,0,LHip),RKnee=limb('RightKnee',0,kneeY-hipY,0,RHip);
+  const LArm=limb('LeftShoulder',mid-w*.355,shoulderY,0),RArm=limb('RightShoulder',mid+w*.355,shoulderY,0);
+  const LElbow=limb('LeftElbow',0,elbowY-shoulderY,0,LArm),RElbow=limb('RightElbow',0,elbowY-shoulderY,0,RArm);
+  const bones=[skeletonRoot,LHip,LKnee,RHip,RKnee,LArm,LElbow,RArm,RElbow];
+  const idx=new Uint16Array(pos.count*4),weights=new Float32Array(pos.count*4);
+  for(let i=0;i<pos.count;i++){
+    const x=pos.getX(i)-mid,y=pos.getY(i);
+    const left=smooth(-w*.03,w*.10,-x),right=1-left;
+    const legFactor=1-smooth(min+h*.47,min+h*.65,y);
+    const kneeFactor=1-smooth(kneeY-h*.09,kneeY+h*.09,y);
+    const armFactor=smooth(w*.18,w*.34,Math.abs(x))*
+      smooth(min+h*.53,min+h*.68,y)*(1-smooth(min+h*.88,min+h*.98,y));
+    const elbowFactor=1-smooth(elbowY-h*.09,elbowY+h*.09,y);
+    const leg=legFactor*(1-armFactor)*.98,arm=armFactor*.85;
+    const contributions=[
+      [left?(1):(3),leg*(1-kneeFactor)*(left||right)],
+    ];
+    const parts=[
+      [0,1-leg-arm],
+      [1,leg*left*(1-kneeFactor)],[2,leg*left*kneeFactor],
+      [3,leg*right*(1-kneeFactor)],[4,leg*right*kneeFactor],
+      [5,arm*left*(1-elbowFactor)],[6,arm*left*elbowFactor],
+      [7,arm*right*(1-elbowFactor)],[8,arm*right*elbowFactor]
+    ].sort((a,b)=>b[1]-a[1]).slice(0,4);
+    const sum=parts.reduce((a,p)=>a+p[1],0)||1;
+    for(let k=0;k<4;k++){idx[i*4+k]=parts[k]?.[0]??0;weights[i*4+k]=(parts[k]?.[1]??0)/sum}
+  }
+  geo.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(idx,4));
+  geo.setAttribute('skinWeight',new THREE.Float32BufferAttribute(weights,4));
+  const skin=new THREE.SkinnedMesh(geo,mesh.material);
+  skin.name='GraffitiArtist_ProceduralRig';
+  skin.position.copy(mesh.position);skin.rotation.copy(mesh.rotation);skin.scale.copy(mesh.scale);
+  skin.castShadow=true;skin.receiveShadow=true;skin.frustumCulled=false;
+  const parent=mesh.parent;parent.add(skin);skin.add(skeletonRoot);
+  skin.updateMatrixWorld(true);skin.bind(new THREE.Skeleton(bones));
+  parent.remove(mesh);
+  return {LHip,RHip,LKnee,RKnee,LArm,RArm,LElbow,RElbow,skin};
+}
+function animateGait(dt,active){
+  if(!gaitRig)return;
+  const k=active?1:0;
+  if(active)walkClock+=dt*7.6*Number(document.querySelector('#speed').value);
+  const swing=Math.sin(walkClock),swing2=Math.sin(walkClock+Math.PI);
+  gaitRig.LHip.rotation.x=swing*.40*k;
+  gaitRig.RHip.rotation.x=swing2*.40*k;
+  gaitRig.LKnee.rotation.x=Math.max(0,Math.sin(walkClock+1.1))*.55*k;
+  gaitRig.RKnee.rotation.x=Math.max(0,Math.sin(walkClock+Math.PI+1.1))*.55*k;
+  gaitRig.LArm.rotation.x=-swing*.20*k;
+  gaitRig.RArm.rotation.x=-swing2*.13*k; // smaller right-hand swing to protect spray pose
+  gaitRig.LElbow.rotation.x=-.07*k;gaitRig.RElbow.rotation.x=-.12*k;
+  gaitRig.skin.skeleton.update();
+}
 const loader=new GLTFLoader();
 loader.load('https://v3b.fal.media/files/b/0ab1cbe9/RX53R94tngPxcKIuPRFy8_graffiti-character-3d.glb',gltf=>{
   const model=gltf.scene;
@@ -65,14 +134,16 @@ loader.load('https://v3b.fal.media/files/b/0ab1cbe9/RX53R94tngPxcKIuPRFy8_graffi
   bounds.setFromObject(model);
   model.position.y=-bounds.min.y;
   actor.add(model);
+  try{gaitRig=makeGaitRig(model)}catch(err){console.warn('Procedural rig:',err)}
+  loadedOriginal=true;
   [legA,legB,armA,armB].forEach(x=>x.visible=false);
   actor.children.filter(x=>x.isMesh&&x!==spray).forEach(x=>x.visible=false);
   spray.visible=false;
   model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
-  document.querySelector('#assetStatus').textContent='Model GLB original încărcat · animația scheletului este în lucru';
+  document.querySelector('#assetStatus').textContent='Model original încărcat · '+(gaitRig?'schelet procedural activ':'fără schelet, inspectează consola')+'';
 },undefined,()=>{document.querySelector('#assetStatus').textContent='Avatar de test · modelul GLB nu a putut fi încărcat de la gazda de fișiere';});
 const lengths=[0];for(let i=1;i<samples.length;i++)lengths.push(lengths[i-1]+samples[i].distanceTo(samples[i-1]));const total=lengths[lengths.length-1];let dist=0,playing=true;
-function tick(dt){if(playing){dist+=dt*Number(document.querySelector('#speed').value);if(dist>total)dist=0}let lo=0,hi=lengths.length-1;while(lo<hi){const m=(lo+hi)>>1;if(lengths[m]<dist)lo=m+1;else hi=m}const i=Math.max(1,lo),d=(dist-lengths[i-1])/Math.max(.00001,lengths[i]-lengths[i-1]);actor.position.copy(samples[i-1]).lerp(samples[i],THREE.MathUtils.clamp(d,0,1));actor.position.y=-.12;const dir=samples[Math.min(i+1,samples.length-1)].clone().sub(samples[Math.max(i-1,0)]);actor.rotation.y=Math.atan2(dir.x,dir.z);const g=Math.sin(dist*9)*.45*(playing?1:0);legA.rotation.x=g;legB.rotation.x=-g;armA.rotation.x=-g*.7;armB.rotation.x=g*.7;document.querySelector('#status').textContent='Traseu original (268 puncte, dus-întors) · '+dist.toFixed(1)+' / '+total.toFixed(1)+' m · avatar de test'}
+function tick(dt){if(playing){dist+=dt*Number(document.querySelector('#speed').value);if(dist>total)dist=0}let lo=0,hi=lengths.length-1;while(lo<hi){const m=(lo+hi)>>1;if(lengths[m]<dist)lo=m+1;else hi=m}const i=Math.max(1,lo),d=(dist-lengths[i-1])/Math.max(.00001,lengths[i]-lengths[i-1]);actor.position.copy(samples[i-1]).lerp(samples[i],THREE.MathUtils.clamp(d,0,1));actor.position.y=-.12+(gaitRig&&playing?Math.abs(Math.sin(walkClock*2))*.018:0);animateGait(dt,playing);const dir=samples[Math.min(i+1,samples.length-1)].clone().sub(samples[Math.max(i-1,0)]);actor.rotation.y=Math.atan2(dir.x,dir.z);const g=Math.sin(dist*9)*.45*(playing?1:0);legA.rotation.x=g;legB.rotation.x=-g;armA.rotation.x=-g*.7;armB.rotation.x=g*.7;document.querySelector('#status').textContent='Traseu original (268 puncte, dus-întors) · '+dist.toFixed(1)+' / '+total.toFixed(1)+' m · '+(loadedOriginal?'model original':'avatar de test')}
 document.querySelector('#tour').onclick=()=>{playing=true;document.querySelector('#tour').classList.add('active');document.querySelector('#pause').classList.remove('active')};
 document.querySelector('#pause').onclick=()=>{playing=false;document.querySelector('#pause').classList.add('active');document.querySelector('#tour').classList.remove('active')};
 document.querySelector('#reset').onclick=()=>{camera.position.set(25,23,29);orbit.target.set(0,5,0);orbit.update()};

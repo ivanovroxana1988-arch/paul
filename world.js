@@ -1,5 +1,6 @@
 import {FIVE_ARCADES} from './arcade-layout.js';
 import {createGraffitiArtist} from './characters/graffiti-artist.js';
+import {createArtistRoute} from './characters/artist-route.js';
 import * as T from './vendor/three.module.js';
 import {finishSurfaces} from './surface-finish.js?v=3';
 import {addAtelierDetail} from './atelier-detail.js';
@@ -77,7 +78,17 @@ const lowerParts=addLowerArcadeDetails({T,scene,roots:roomRoots,stone,paleStone,
 const surfaceFinish=finishSurfaces({T,scene,stone,paleStone,darkStone,metal,brass,waterMat,roots:roomRoots});
 // The dark alcove immediately to the left of SKIN in the reference view.
 const graffitiAlcove=scene.children.find(o=>o.name==='alcove-bay'&&o.position.x< -16&&o.position.z>0);
-const graffiti=graffitiAlcove?createGraffitiArtist({alcove:graffitiAlcove,reducedMotion:reduced}):null;
+const graffiti=graffitiAlcove?createGraffitiArtist({alcove:graffitiAlcove,scene,reducedMotion:reduced}):null;
+// The route is a user-drawn 268-point plan from the conceptual floor map.
+// Reproject through A* to the ACTUAL walkable NINJA.SYS floor: pool, void and wall colliders are excluded.
+let artistRoute=null;
+if(graffiti&&!reduced){
+ fetch('./data/parter.json').then(r=>{if(!r.ok)throw Error('Parter route HTTP '+r.status);return r.json()})
+ .then(data=>{
+   artistRoute=createArtistRoute({scene,data,canWalk:walkAllowed,floorHeight:levels.floorHeight,showDebug:new URLSearchParams(location.href).has('artistRoute')});
+   console.info('Artist graffiti: traseu recalculat din planul conceptual pentru arhitectura NINJA.SYS',artistRoute.stats);
+ }).catch(e=>console.error('Traseul artistului nu este disponibil:',e));
+}
 scene.updateMatrixWorld(true);
 // Dust suspended in the light.
 const dustGeo=new T.BufferGeometry(),dustPositions=[];for(let i=0;i<600;i++)dustPositions.push((rand()-.5)*38,rand()*22,(rand()-.5)*38);dustGeo.setAttribute('position',new T.Float32BufferAttribute(dustPositions,3));const dust=new T.Points(dustGeo,new T.PointsMaterial({color:'#ffe5b2',size:.025,transparent:true,opacity:.4,depthWrite:false}));scene.add(dust);
@@ -130,8 +141,9 @@ $('#sunView').addEventListener('click',()=>{
 function findGraffitiArtist(){
  if(!graffitiAlcove)return;
  graffitiAlcove.updateWorldMatrix(true,false);
- const from=graffitiAlcove.localToWorld(new T.Vector3(0,1.85,3.7));
- const look=graffitiAlcove.localToWorld(new T.Vector3(0,1.45,-1.49));
+ const moving=graffiti?.getPosition();
+ const from=moving?new T.Vector3(moving.x+2.2,moving.y+1.85,moving.z+3.5):graffitiAlcove.localToWorld(new T.Vector3(0,1.85,3.7));
+ const look=moving?new T.Vector3(moving.x,moving.y+1.2,moving.z):graffitiAlcove.localToWorld(new T.Vector3(0,1.45,-1.49));
  $('#zoneInfo').hidden=true;$('#map').hidden=true;$('#mapToggle').setAttribute('aria-expanded','false');
  go(from.toArray(),look.toArray(),()=>{location.textContent='ATRIUM / ARTIST GRAFFITI';});
 }
@@ -162,6 +174,9 @@ else if(touring){tourTime+=dt;const a=frontLayout?Math.sin(tourTime*.12)*1.15:to
 else if(!$('#studyDialog').open){const forward=Number(keys.has('w')||keys.has('arrowup')||touchKeys.has('forward'))-Number(keys.has('s')||keys.has('arrowdown')||touchKeys.has('back'));const side=Number(keys.has('d')||keys.has('arrowright')||touchKeys.has('right'))-Number(keys.has('a')||keys.has('arrowleft')||touchKeys.has('left'));if(forward||side){const len=Math.hypot(forward,side),speed=dt*4.5/len,dx=(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed,dz=(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed;if(walkAllowed(camera.position.x+dx,camera.position.z,Math.min(0,camera.position.y-1.85)))camera.position.x+=dx;if(walkAllowed(camera.position.x,camera.position.z+dz,Math.min(0,camera.position.y-1.85)))camera.position.z+=dz;camera.position.y=T.MathUtils.lerp(camera.position.y,levels.floorHeight(camera.position.x,camera.position.z)+1.85,.45);const z=zoneData.find(z=>{const p=roomLocal(z,camera.position.x,camera.position.z);return Math.abs(p.x)<3&&p.z< -2;});location.textContent=z?`${z.name} / GALERIE`:camera.position.y<0?'NIVEL INFERIOR / EXPLORARE':'ATRIUM / EXPLORARE';if(z&&lastWalkZone!==z.id)showZone(z);if(!z)lastWalkZone=null;}}
 camera.rotation.set(pitch,yaw,0);if(!reduced){surfaceFinish.update(clock);details.update(clock);sculpture.rotation.y=Math.sin(clock*.1)*.16;sculpture.position.y=1.5+Math.sin(clock*.6)*.12;galleryObjects.forEach((m,i)=>{m.rotation.y=clock*(.12+i*.05);m.rotation.x=Math.sin(clock*.3)*.15});ripples.forEach((m,i)=>{const t=((clock*.08+i/7)%1);m.scale.setScalar(.4+t*4.2);m.material.opacity=(1-t)*.15});banners.forEach((b,k)=>{const p=b.geometry.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i);p.setZ(i,Math.sin(y*.8+clock*.65+k)*.07*(3.5-y)/7)}p.needsUpdate=true;b.geometry.computeVertexNormals()});dust.rotation.y=clock*.008;guide.rotation.y=-.2+Math.sin(clock*.4)*.05;}
 if(frontLayout)camera.position.y=Math.max(camera.position.y,levels.floorHeight(camera.position.x,camera.position.z)+1.65);
+if(artistRoute&&graffiti?.hasModel()&&!reduced){
+ const pose=artistRoute.update(dt,1.05);graffiti.setWalkPose(pose.position,pose.heading);
+}
 graffiti?.update(dt);
 $('#mapDot').setAttribute('cx',String(160+camera.position.x*4.5));$('#mapDot').setAttribute('cy',String(145+(camera.position.z-ROTUNDA_CENTER_Z)*4.5));visibleSky.follow(camera);renderer.render(scene,camera);requestAnimationFrame(animate)}
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});if(new URLSearchParams(window.location.search).get('artist')==='1')requestAnimationFrame(findGraffitiArtist);renderer.render(scene,camera);$('#loader').style.opacity='0';setTimeout(()=>$('#loader').remove(),650);requestAnimationFrame(animate);

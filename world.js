@@ -74,6 +74,19 @@ function abstractArt(style){return texture((c,s)=>{c.fillStyle=['#e6dbc1','#152f
 const galleryObjects=[];zoneData.forEach((zone,i)=>{const artStart=scene.children.length;const artMat=new T.MeshStandardMaterial({map:abstractArt(i),roughness:.85});if(i===3){for(let n=0;n<3;n++){const x=zone.x+(n-1)*2;cylinder(.65,.75,1.1,x,.5,-21,stone);const o=mesh(n===0?new T.TorusKnotGeometry(.55,.15,100,12,2,3):n===1?new T.IcosahedronGeometry(.7,0):new T.OctahedronGeometry(.8),n===1?sculptureGlow:ivory,x,2,-21);galleryObjects.push(o)}}else{for(let n=0;n<3;n++){const x=zone.x+(n-1)*2.2;box(1.9,3.1,.18,x,3,-25.55,brass);mesh(new T.PlaneGeometry(1.72,2.92),artMat,x,3,-25.43);const spot=new T.SpotLight('#ffdb9f',16,8,Math.PI/6,.6,1);spot.position.set(x,6,-22);spot.target.position.set(x,3,-25.5);scene.add(spot,spot.target)}for(const side of [-1,1]){const p=mesh(new T.PlaneGeometry(3,3.6),artMat,zone.x+side*3.55,3,-21);p.rotation.y=-side*Math.PI/2}}textPlane('CONCEPT STUDIES',zone.x,1,-25.7,5,17,'#91bca8');attachRoom(i,scene.children.slice(artStart));});
 const details=addAtelierDetail({T,scene,mesh,box,cylinder,pipe,curve,textPlane,texture,stone,paleStone,darkStone,metal,brass,mint,sculpture,ivory,sculptureGlow,waterMat,attachSkin:children=>attachRoom(0,children)});
 roomRoots.forEach((root,i)=>{root.position.set(zoneData[i].worldX,0,zoneData[i].worldZ);root.rotation.y=-zoneData[i].theta;});
+// Each ground-floor gallery has a real slab: its underside is the ceiling and
+// its top meets the first-floor walkway at y=9.95. Keep the atrium open.
+for(const root of roomRoots){
+ const slab=box(7.8,.35,13.15,0,9.775,-6.75,stone,root);
+ slab.name='first-floor-gallery-slab';
+ // Extend the existing walls up to the underside of the slab.
+ for(const x of [-3.8,3.8]){
+  const wall=box(.4,1.6,12,x,8.8,-7,darkStone,root);
+  wall.name='gallery-upper-side-wall';
+ }
+ const back=box(7.7,1.6,.5,0,8.8,-13,darkStone,root);
+ back.name='gallery-upper-back-wall';
+}
 const lowerParts=addLowerArcadeDetails({T,scene,roots:roomRoots,stone,paleStone,metal,brass});
 const surfaceFinish=finishSurfaces({T,scene,stone,paleStone,darkStone,metal,brass,waterMat,roots:roomRoots});
 // The dark alcove immediately to the left of SKIN in the reference view.

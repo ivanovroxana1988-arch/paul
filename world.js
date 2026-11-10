@@ -1,5 +1,5 @@
 import {FIVE_ARCADES} from './arcade-layout.js';
-import {createGraffitiArtist} from './characters/graffiti-artist.js';
+import {createGraffitiArtist} from './characters/graffiti-artist.js?v=2';
 import {createArtistRoute} from './characters/artist-route.js';
 import * as T from './vendor/three.module.js';
 import {finishSurfaces} from './surface-finish.js?v=3';
@@ -194,7 +194,7 @@ else if(!$('#studyDialog').open){const forward=Number(keys.has('w')||keys.has('a
 camera.rotation.set(pitch,yaw,0);if(!reduced){surfaceFinish.update(clock);details.update(clock);sculpture.rotation.y=Math.sin(clock*.1)*.16;sculpture.position.y=1.5+Math.sin(clock*.6)*.12;galleryObjects.forEach((m,i)=>{m.rotation.y=clock*(.12+i*.05);m.rotation.x=Math.sin(clock*.3)*.15});ripples.forEach((m,i)=>{const t=((clock*.08+i/7)%1);m.scale.setScalar(.4+t*4.2);m.material.opacity=(1-t)*.15});banners.forEach((b,k)=>{const p=b.geometry.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i);p.setZ(i,Math.sin(y*.8+clock*.65+k)*.07*(3.5-y)/7)}p.needsUpdate=true;b.geometry.computeVertexNormals()});dust.rotation.y=clock*.008;guide.rotation.y=-.2+Math.sin(clock*.4)*.05;}
 if(frontLayout)camera.position.y=Math.max(camera.position.y,levels.floorHeight(camera.position.x,camera.position.z)+1.65);
 if(artistRoute&&graffiti?.hasModel()&&!reduced){
- const pose=artistRoute.update(dt,1.05);graffiti.setWalkPose(pose.position,pose.heading);
+ const pose=artistRoute.update(dt,1.05);graffiti.setWalkPose(pose.position,pose.heading,dt);
 }
 graffiti?.update(dt);
 if(useMobileLightBudget&&Math.floor(clock*2)!==Math.floor((clock-dt)*2))selectMobileLights();

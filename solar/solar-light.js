@@ -13,6 +13,11 @@ export function createSolarLight({T, scene, sun, sky, ambient, fill, onChange = 
   const coolFill = new T.Color('#7fb6bf'), warmFill = new T.Color('#e98b72');
   // Start with a well-lit architectural demonstration. The visitor can still choose
   // real Bucharest time, sunrise, sunset or any hour via the existing controls.
+  // Sunrise has its own warm golden palette; the vivid sunset is unchanged.
+  const dawnHorizon = new T.Color('#ffad67'), dawnGold = new T.Color('#ffd08c');
+  const dawnHorizonSky = new T.Color('#dfa46f'), dawnTwilightSky = new T.Color('#ad8979');
+  const dawnSky = new T.Color('#ffd4a4'), dawnAmbient = new T.Color('#edbc87'), dawnFill = new T.Color('#eac093');
+  const blend = new T.Color();
   let mode = 'live', selected = 720, previewDate = null, timer = null;
   // Interior exhibition lighting is independent of the astronomical sun.
   // It keeps the building recognizable at night without falsifying the sun/shadows.
@@ -31,23 +36,25 @@ export function createSolarLight({T, scene, sun, sky, ambient, fill, onChange = 
     // Warmth peaks near the horizon and fades gradually into daylight. Keep a
     // separate, softer afterglow below the horizon without direct sunlight.
     const glow=smooth(-8,-2,degrees)*(1-smooth(5,22,degrees));
+    // Eastward sun identifies morning; around noon twilight is already zero.
+    const morning=smooth(.04,.3,p.east);
     sun.position.set(target.x+p.east*65,target.y+p.up*65,target.z+p.south*65);
     sun.intensity=4.2*direct;
-    sun.color.copy(horizon).lerp(gold,smooth(2,14,degrees)).lerp(neutral,smooth(12,35,degrees));
+    sun.color.copy(horizon).lerp(dawnHorizon,morning).lerp(blend.copy(gold).lerp(dawnGold,morning),smooth(2,14,degrees)).lerp(neutral,smooth(12,35,degrees));
     sky.intensity=.18+1.7*daylight;
-    sky.color.copy(blueSky).lerp(warmSky,glow*.72);
+    sky.color.copy(blueSky).lerp(blend.copy(warmSky).lerp(dawnSky,morning),glow*.72);
     ambient.intensity=.10+.24*daylight;
-    ambient.color.copy(normalAmbient).lerp(warmAmbient,glow*.75);
+    ambient.color.copy(normalAmbient).lerp(blend.copy(warmAmbient).lerp(dawnAmbient,morning),glow*.75);
     fill.intensity=.07+.35*daylight;
     galleryFill.intensity=.18+1.05*(1-daylight);
-    fill.color.copy(coolFill).lerp(warmFill,glow*.6);
+    fill.color.copy(coolFill).lerp(blend.copy(warmFill).lerp(dawnFill,morning),glow*.6);
     scene.background.copy(night).lerp(day,daylight);
     // The environment tint is atmospheric ambience, not a reconstruction of
     // the exact sky on this date. Twilight remains softly visible after sunset.
-    scene.background.lerp(twilightSky,glow*(1-daylight)*.7);
-    scene.background.lerp(horizonSky,glow*daylight*.7);
+    scene.background.lerp(blend.copy(twilightSky).lerp(dawnTwilightSky,morning),glow*(1-daylight)*.7);
+    scene.background.lerp(blend.copy(horizonSky).lerp(dawnHorizonSky,morning),glow*daylight*.7);
     if(scene.fog)scene.fog.color.copy(scene.background);
-    onSky({direction:p,color:sun.color,background:scene.background,daylight,twilight:glow,altitude:degrees});
+    onSky({direction:p,color:sun.color,background:scene.background,daylight,twilight:glow*(1-.3*morning),altitude:degrees});
     const local=bucharestParts(date), text=`${String(local.hour).padStart(2,'0')}:${String(local.minute).padStart(2,'0')}`;
     onChange({mode,date,time:text,minutes:local.hour*60+local.minute,altitude:degrees,summer:previewDate !== null});
   }

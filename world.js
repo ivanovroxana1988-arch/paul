@@ -7,7 +7,7 @@ import {addAtelierDetail} from './atelier-detail.js';
 import {buildRotunda,ROTUNDA_RADIUS,ROTUNDA_CENTER_Z} from './rotunda.js?v=5';
 import {addLevels} from './levels.js';
 import {addLowerArcadeDetails} from './lower-arcades.js';
-import {createSolarLight} from './solar/solar-light.js?v=7';
+import {createSolarLight} from './solar/solar-light.js?v=8';
 import {createVisibleSky} from './solar/visible-sky.js?v=2';
 const $=s=>document.querySelector(s),canvas=$('#world'),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const frontLayout=document.body.dataset.layout==='five-arcades'?FIVE_ARCADES:null;

@@ -8,7 +8,9 @@ import {buildRotunda,ROTUNDA_RADIUS,ROTUNDA_CENTER_Z} from './rotunda.js?v=5';
 import {addLevels} from './levels.js?v=2';
 import {addLowerArcadeDetails} from './lower-arcades.js';
 import {createSolarLight} from './solar/solar-light.js?v=8';
-import {createVisibleSky} from './solar/visible-sky.js?v=2';
+import {createVisibleSky} from './solar/visible-sky.js?v=6';
+import {createBucharestWeather} from './solar/bucharest-weather.js';
+import {createExteriorWeather} from './solar/exterior-weather.js';
 const $=s=>document.querySelector(s),canvas=$('#world'),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const frontLayout=document.body.dataset.layout==='five-arcades'?FIVE_ARCADES:null;
 const roomLayout=frontLayout&&[frontLayout[0],frontLayout[1],frontLayout[3],frontLayout[4]];
@@ -29,6 +31,13 @@ const sky=new T.HemisphereLight('#b5d7de','#4a3925',2.15),ambient=new T.AmbientL
 // original resolution on low-memory devices and never exceed the GPU limit.
 const shadowSize=Math.min(renderer.capabilities.maxTextureSize,(navigator.deviceMemory && navigator.deviceMemory<=4)?2048:3072);sun.shadow.mapSize.set(shadowSize,shadowSize);sun.shadow.bias=-.00025;sun.shadow.normalBias=.015;scene.add(sun);const fill=new T.DirectionalLight('#7fb6bf',.7);fill.position.set(-18,12,-16);scene.add(fill);
 const visibleSky=createVisibleSky({T,scene});visibleSky.follow(camera);
+const exteriorWeather=createExteriorWeather({T,scene,reducedMotion:reduced});
+const weather=createBucharestWeather({onUpdate:state=>{visibleSky.setWeather(state);exteriorWeather.setWeather(state);},onStatus:({state,weather})=>{
+ const el=$('#weatherStatus');
+ if(state==='unavailable') el.textContent='Vremea este momentan indisponibilă.';
+ else {const time=weather.time.slice(11,16);el.textContent=`${weather.label} · ${Math.round(weather.temperature)}°C · ${state==='cached'?'ultima actualizare':'date meteo'} ${time}`;}
+}});
+weather.start();
 const solar=createSolarLight({T,scene,sun,sky,ambient,fill,onSky:state=>visibleSky.update(state),onChange:state=>{const range=$('#sunTime');range.value=state.minutes;$('#sunClock').textContent=state.time;$('#sunMode').textContent=state.summer?'21 IUNIE · BUCUREȘTI':state.mode==='live'?'ORA REALĂ · BUCUREȘTI':'ORA ALEASĂ · BUCUREȘTI';$('#sunLive').setAttribute('aria-pressed',String(state.mode==='live'));$('#sunSummer').setAttribute('aria-pressed',String(state.summer));}});
 $('#sunToggle').addEventListener('click',()=>{const panel=$('#sunPanel');panel.hidden=!panel.hidden;$('#sunToggle').setAttribute('aria-expanded',String(!panel.hidden));});
 $('#sunTime').addEventListener('input',e=>{solar.setTime(Number(e.target.value));$('#sunHint').textContent='Apasă „Privește soarele” pentru ora selectată.';});
@@ -211,7 +220,7 @@ if(artistRoute&&graffiti?.hasModel()&&!reduced){
 }
 graffiti?.update(dt);
 if(useMobileLightBudget&&Math.floor(clock*2)!==Math.floor((clock-dt)*2))selectMobileLights();
-$('#mapDot').setAttribute('cx',String(160+camera.position.x*4.5));$('#mapDot').setAttribute('cy',String(145+(camera.position.z-ROTUNDA_CENTER_Z)*4.5));visibleSky.follow(camera);renderer.render(scene,camera);requestAnimationFrame(animate)}
+$('#mapDot').setAttribute('cx',String(160+camera.position.x*4.5));$('#mapDot').setAttribute('cy',String(145+(camera.position.z-ROTUNDA_CENTER_Z)*4.5));visibleSky.follow(camera);visibleSky.tick(dt);exteriorWeather.update(dt);renderer.render(scene,camera);requestAnimationFrame(animate)}
 // Optional read-only runtime diagnostics: append ?diagnostic=1 to the URL.
 if(new URLSearchParams(window.location.search).get('diagnostic')==='1'){
  const audit=document.createElement('output');audit.id='scene-diagnostic';

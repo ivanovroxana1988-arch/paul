@@ -1,6 +1,4 @@
-import {addArcadeBackdrops} from './arcade-backdrops.js?v=2';
-import {addCentralHall} from './central-hall.js?v=1';
-import {addUpperStorey} from './upper-storey.js?v=raised-bridge-1';
+import {addUpperStorey} from './upper-storey.js?v=18';
 // A circular hall, with radial galleries and a continuous annular balcony.
 export const ROTUNDA_RADIUS=18.5;
 export const ROTUNDA_CENTER_Z=-1;
@@ -54,9 +52,5 @@ if(frontLayout){
 }
 const upperParts=addUpperStorey({T,scene,mesh,box,pipe,stone,paleStone,metal,brass});
 
-addArcadeBackdrops({T,scene,frontLayout});
-addCentralHall({T,scene,frontLayout,stone,paleStone,darkStone,metal,brass});
 return {radius:R,bays,centerZ:CZ,upperParts};
 }
-
-

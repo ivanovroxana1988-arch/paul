@@ -30,7 +30,12 @@ export function createVisibleSky({T, scene}) {
       uniform mat4 inverseProjection;
       uniform mat3 cameraRotation;
       varying vec2 screenPosition;
-      float hash(vec3 p) { return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453); }
+      // A non-trigonometric hash avoids sin() precision artifacts on mobile GPUs.
+      float hash(vec3 p) {
+        vec3 p3 = fract(p * 0.1031);
+        p3 += dot(p3, p3.yzx + 33.33);
+        return fract((p3.x + p3.y) * p3.z);
+      }
       float noise3(vec3 p) {
         vec3 i=floor(p), f=fract(p); f=f*f*f*(f*(f*6.0-15.0)+10.0);
         return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
@@ -57,9 +62,9 @@ export function createVisibleSky({T, scene}) {
         cloudPos += vec3(warp,-warp*0.4,warp*0.7) * 0.55;
         float n=noise3(cloudPos)*0.58+noise3(cloudPos*2.03)*0.28+noise3(cloudPos*4.07)*0.14;
         float threshold=0.72-cloudCover*0.36;
-        float clouds=smoothstep(threshold-0.10,threshold+0.14,n)*smoothstep(0.0,0.12,cloudCover);
+        float clouds=smoothstep(threshold-0.14,threshold+0.16,n)*smoothstep(0.0,0.12,cloudCover);
         vec3 cloudColor=mix(vec3(0.10,0.13,0.18),vec3(0.71,0.74,0.76),daylight);
-        color=mix(color,cloudColor,clouds*0.9);
+        color=mix(color,cloudColor,clouds*0.78);
         gl_FragColor = vec4(color, 1.0);
         #include <colorspace_fragment>
       }

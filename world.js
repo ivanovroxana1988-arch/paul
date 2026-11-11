@@ -1,22 +1,27 @@
 import {FIVE_ARCADES} from './arcade-layout.js';
 import {createGraffitiArtist} from './characters/graffiti-artist.js?v=2';
+import {createWalkingArtist} from './characters/walking-artist.js';
 import {createArtistRoute} from './characters/artist-route.js';
 import * as T from './vendor/three.module.js';
 import {finishSurfaces} from './surface-finish.js?v=3';
 import {addAtelierDetail} from './atelier-detail.js';
-import {buildRotunda,ROTUNDA_RADIUS,ROTUNDA_CENTER_Z} from './rotunda.js?v=raised-bridge-1';
-import {addLevels} from './levels.js?v=2';
+import {buildRotunda,ROTUNDA_RADIUS,ROTUNDA_CENTER_Z} from './rotunda.js?v=19';
+import {addLevels} from './levels.js?v=4';
 import {addLowerArcadeDetails} from './lower-arcades.js';
+import {addSkinNicheCorridor} from './skin-niche-corridor.js?v=1';
 import {createSolarLight} from './solar/solar-light.js?v=8';
-import {createVisibleSky} from './solar/visible-sky.js?v=6';
+import {createVisibleSky} from './solar/visible-sky.js?v=7';
 import {createBucharestWeather} from './solar/bucharest-weather.js';
 import {createExteriorWeather} from './solar/exterior-weather.js';
+import {addBucharestView} from './bucharest-view.js?v=11';
+import {addExteriorTerrace} from './exterior-terrace.js?v=1';
 const $=s=>document.querySelector(s),canvas=$('#world'),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const frontLayout=document.body.dataset.layout==='five-arcades'?FIVE_ARCADES:null;
 const roomLayout=frontLayout&&[frontLayout[0],frontLayout[1],frontLayout[3],frontLayout[4]];
 let renderer;try{renderer=new T.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});}catch(error){$('#loader').style.display='none';$('#error').hidden=false;throw error;}
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.18;
-const scene=new T.Scene();scene.background=new T.Color('#344c50');scene.fog=new T.FogExp2('#344749',.017);const camera=new T.PerspectiveCamera(59,innerWidth/innerHeight,.1,120);camera.position.set(0,3.8,15.8);let yaw=0,pitch=.07;camera.rotation.order='YXZ';
+const scene=new T.Scene();scene.background=new T.Color('#344c50');scene.fog=new T.FogExp2('#344749',.017);const camera=new T.PerspectiveCamera(59,innerWidth/innerHeight,.1,180);camera.position.set(0,3.8,15.8);let yaw=0,pitch=.07;camera.rotation.order='YXZ';
+const bucharestView=addBucharestView({scene});
 let seed=39;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
 function texture(draw,size=512){const c=document.createElement('canvas');c.width=c.height=size;draw(c.getContext('2d'),size);const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;return t;}
 const stoneTex=texture((c,s)=>{c.fillStyle='#827b6b';c.fillRect(0,0,s,s);for(let i=0;i<45000;i++){const v=80+rand()*100;c.fillStyle=`rgba(${v},${v*.94},${v*.81},${rand()*.4})`;const n=rand()*3;c.fillRect(rand()*s,rand()*s,n,n)}for(let y=0;y<s;y+=128){c.fillStyle='#3e40352b';c.fillRect(0,y,s,3);for(let x=(y/128%2)*128;x<s;x+=256)c.fillRect(x,y,3,128)}for(let i=0;i<20;i++){c.strokeStyle='#41463826';c.lineWidth=rand()*4;c.beginPath();let x=rand()*s,y=rand()*s;c.moveTo(x,y);c.lineTo(x+rand()*30-15,y+rand()*70);c.stroke()}});stoneTex.wrapS=stoneTex.wrapT=T.RepeatWrapping;stoneTex.repeat.set(2,2);
@@ -38,7 +43,7 @@ const weather=createBucharestWeather({onUpdate:state=>{visibleSky.setWeather(sta
  else {const time=weather.time.slice(11,16);el.textContent=`${weather.label} · ${Math.round(weather.temperature)}°C · ${state==='cached'?'ultima actualizare':'date meteo'} ${time}`;}
 }});
 weather.start();
-const solar=createSolarLight({T,scene,sun,sky,ambient,fill,onSky:state=>visibleSky.update(state),onChange:state=>{const range=$('#sunTime');range.value=state.minutes;$('#sunClock').textContent=state.time;$('#sunMode').textContent=state.summer?'21 IUNIE · BUCUREȘTI':state.mode==='live'?'ORA REALĂ · BUCUREȘTI':'ORA ALEASĂ · BUCUREȘTI';$('#sunLive').setAttribute('aria-pressed',String(state.mode==='live'));$('#sunSummer').setAttribute('aria-pressed',String(state.summer));}});
+const solar=createSolarLight({T,scene,sun,sky,ambient,fill,onSky:state=>visibleSky.update(state),onChange:state=>{bucharestView.setSolarAltitude(state.altitude);const range=$('#sunTime');range.value=state.minutes;$('#sunClock').textContent=state.time;$('#sunMode').textContent=state.summer?'21 IUNIE · BUCUREȘTI':state.mode==='live'?'ORA REALĂ · BUCUREȘTI':'ORA ALEASĂ · BUCUREȘTI';$('#sunLive').setAttribute('aria-pressed',String(state.mode==='live'));$('#sunSummer').setAttribute('aria-pressed',String(state.summer));}});
 $('#sunToggle').addEventListener('click',()=>{const panel=$('#sunPanel');panel.hidden=!panel.hidden;$('#sunToggle').setAttribute('aria-expanded',String(!panel.hidden));});
 $('#sunTime').addEventListener('input',e=>{solar.setTime(Number(e.target.value));$('#sunHint').textContent='Apasă „Privește soarele” pentru ora selectată.';});
 $('#sunLive').addEventListener('click',()=>{solar.setLive();$('#sunHint').textContent='Apasă „Privește soarele” pentru ora reală.';});
@@ -46,6 +51,7 @@ $('#sunSummer').addEventListener('click',()=>{solar.setSummer();$('#sunHint').te
 solar.start();
 // The floor, openings and all architecture are actual meshes.
 const levels=addLevels({T,scene,mesh,box,pipe,stone,paleStone,darkStone,metal,brass,mint});
+const exteriorTerrace=addExteriorTerrace({T,scene,mesh,box,stone,paleStone,darkStone});
 const poolBase=cylinder(5.1,5.2,.55,0,.08,-1,paleStone,scene,96);const waterMat=new T.MeshPhysicalMaterial({color:'#174c47',metalness:.62,roughness:.15,transparent:true,opacity:.88,clearcoat:1});const water=mesh(new T.CircleGeometry(4.65,96),waterMat,0,.39,-1);water.rotation.x=-Math.PI/2;
 const rim=mesh(new T.TorusGeometry(4.93,.17,12,96),paleStone,0,.4,-1);rim.name='pool-stone-rim';rim.rotation.x=Math.PI/2;const poolLight=mesh(new T.TorusGeometry(4.66,.025,6,96),mint,0,.42,-1,scene,false);poolLight.rotation.x=Math.PI/2;
 const ripples=[];for(let i=0;i<7;i++){const m=mesh(new T.RingGeometry(.98,1,96),new T.MeshBasicMaterial({color:'#81cbb9',transparent:true,opacity:.12,side:T.DoubleSide}),0,.41,-1,scene,false);m.rotation.x=-Math.PI/2;ripples.push(m)}
@@ -83,12 +89,14 @@ function abstractArt(style){return texture((c,s)=>{c.fillStyle=['#e6dbc1','#152f
 const galleryObjects=[];zoneData.forEach((zone,i)=>{const artStart=scene.children.length;const artMat=new T.MeshStandardMaterial({map:abstractArt(i),roughness:.85});if(i===3){for(let n=0;n<3;n++){const x=zone.x+(n-1)*2;cylinder(.65,.75,1.1,x,.5,-21,stone);const o=mesh(n===0?new T.TorusKnotGeometry(.55,.15,100,12,2,3):n===1?new T.IcosahedronGeometry(.7,0):new T.OctahedronGeometry(.8),n===1?sculptureGlow:ivory,x,2,-21);galleryObjects.push(o)}}else{for(let n=0;n<3;n++){const x=zone.x+(n-1)*2.2;box(1.9,3.1,.18,x,3,-25.55,brass);mesh(new T.PlaneGeometry(1.72,2.92),artMat,x,3,-25.43);const spot=new T.SpotLight('#ffdb9f',16,8,Math.PI/6,.6,1);spot.position.set(x,6,-22);spot.target.position.set(x,3,-25.5);scene.add(spot,spot.target)}for(const side of [-1,1]){const p=mesh(new T.PlaneGeometry(3,3.6),artMat,zone.x+side*3.55,3,-21);p.rotation.y=-side*Math.PI/2}}textPlane('CONCEPT STUDIES',zone.x,1,-25.7,5,17,'#91bca8');attachRoom(i,scene.children.slice(artStart));});
 const details=addAtelierDetail({T,scene,mesh,box,cylinder,pipe,curve,textPlane,texture,stone,paleStone,darkStone,metal,brass,mint,sculpture,ivory,sculptureGlow,waterMat,attachSkin:children=>attachRoom(0,children)});
 roomRoots.forEach((root,i)=>{root.position.set(zoneData[i].worldX,0,zoneData[i].worldZ);root.rotation.y=-zoneData[i].theta;});
+const skinNiche=frontLayout?addSkinNicheCorridor({T,root:roomRoots[0]}):null;
 // Each ground-floor gallery has a real slab: its underside is the ceiling and
 // its top meets the first-floor walkway at y=9.95. Keep the atrium open.
 for(const root of roomRoots){
  const slab=box(7.8,.35,13.15,0,9.775,-6.75,stone,root);
  slab.name='first-floor-gallery-slab';
- // Extend the existing walls up to the underside of the slab.
+ // Existing side and back walls stop at y=8; extend them to the slab so the
+ // galleries do not show strips of sky above the walls when viewed from below.
  for(const x of [-3.8,3.8]){
   const wall=box(.4,1.6,12,x,8.8,-7,darkStone,root);
   wall.name='gallery-upper-side-wall';
@@ -97,29 +105,62 @@ for(const root of roomRoots){
  back.name='gallery-upper-back-wall';
 }
 const lowerParts=addLowerArcadeDetails({T,scene,roots:roomRoots,stone,paleStone,metal,brass});
+// Place the lift in front of the gear assembly, towards the atrium.
+const liftAngle=1.43,liftRadius=12.45,liftTop=9.95;
+const liftX=Math.sin(liftAngle)*liftRadius,liftZ=ROTUNDA_CENTER_Z-Math.cos(liftAngle)*liftRadius;
+const liftRoot=new T.Group();liftRoot.name='industrial-platform-lift';liftRoot.position.set(liftX,0,liftZ);liftRoot.rotation.y=-liftAngle;scene.add(liftRoot);
+const liftCar=new T.Group();liftCar.name='moving-lift-platform';liftRoot.add(liftCar);
+const liftMetal=new T.MeshStandardMaterial({color:'#493d30',metalness:.78,roughness:.64});
+const liftTrim=new T.MeshStandardMaterial({color:'#92764d',metalness:.75,roughness:.56});
+const liftCable=new T.MeshStandardMaterial({color:'#938266',metalness:.25,roughness:.92});
+box(2.45,.20,2.45,0,-.1,0,liftMetal,liftCar).name='lift-platform-deck';
+for(let i=-4;i<=4;i++)box(2.35,.022,.025,0,.012,i*.25,liftTrim,liftCar);
+// Railings leave the inner and upper-landing sides open.
+for(const x of [-1.12,1.12]){for(const z of [-1.08,0,1.08])pipe([x,.2,z],[x,1.3,z],.045,liftMetal,liftCar);for(const y of [.72,1.3])pipe([x,y,-1.1],[x,y,1.1],.045,liftTrim,liftCar);}
+// Keep the frame above a visitor's head at the upper landing.
+const liftFrameTop=13.2;
+for(const x of [-1.35,1.35]){pipe([x,0,-1.34],[x,liftFrameTop,-1.34],.075,liftMetal,liftRoot);pipe([x,.2,1.34],[x,liftFrameTop,1.34],.032,liftCable,liftRoot);}
+pipe([-1.35,liftFrameTop,-1.34],[1.35,liftFrameTop,-1.34],.09,liftTrim,liftRoot);
+// A fixed landing connects the relocated platform to the upper circular gallery.
+const landingEnd=15.78-liftRadius,landingStart=1.22,landingLength=landingEnd-landingStart;
+const liftLanding=box(2.15,.20,landingLength,0,liftTop-.1,-(landingStart+landingEnd)/2,liftMetal,liftRoot);
+liftLanding.name='lift-upper-landing';
+for(const x of [-1.02,1.02]){
+ for(const z of [-landingStart,-landingEnd])pipe([x,liftTop,z],[x,liftTop+1.12,z],.045,liftMetal,liftRoot);
+ for(const y of [.65,1.12])pipe([x,liftTop+y,-landingStart],[x,liftTop+y,-landingEnd],.045,liftTrim,liftRoot);
+}
+for(const x of [-1.12,1.12])for(const z of [-1.08,1.08]){const cap=box(.22,.1,.22,x,.26,z,liftTrim,liftCar);cap.name='lift-rivet';}
+const liftLamp=box(.17,.26,.12,1.32,1.25,.5,mint,liftRoot);liftLamp.name='lift-call-button';
 const surfaceFinish=finishSurfaces({T,scene,stone,paleStone,darkStone,metal,brass,waterMat,roots:roomRoots});
 // The dark alcove immediately to the left of SKIN in the reference view.
 const graffitiAlcove=scene.children.find(o=>o.name==='alcove-bay'&&o.position.x< -16&&o.position.z>0);
-const graffiti=graffitiAlcove?createGraffitiArtist({alcove:graffitiAlcove,scene,reducedMotion:reduced}):null;
-// The route is a user-drawn 268-point plan from the conceptual floor map.
-// Reproject through A* to the ACTUAL walkable NINJA.SYS floor: pool, void and wall colliders are excluded.
+const graffiti=graffitiAlcove?createGraffitiArtist({alcove:graffitiAlcove,reducedMotion:reduced}):null;
+// The walking character is independent of the artist painting in the alcove.
+// His original model, authored walking clip and 268-point route are retained.
+const walker=createWalkingArtist({alcove:scene,scene,reducedMotion:reduced});
 let artistRoute=null;
-if(graffiti&&!reduced){
- fetch('./data/parter.json').then(r=>{if(!r.ok)throw Error('Parter route HTTP '+r.status);return r.json()})
- .then(data=>{
-   artistRoute=createArtistRoute({scene,data,canWalk:walkAllowed,floorHeight:levels.floorHeight,showDebug:new URLSearchParams(window.location.search).has('artistRoute')});
-   console.info('Artist graffiti: traseu recalculat din planul conceptual pentru arhitectura NINJA.SYS',artistRoute.stats);
- }).catch(e=>console.error('Traseul artistului nu este disponibil:',e));
-}
+fetch('./data/parter.json').then(response=>{
+ if(!response.ok)throw Error('Parter route HTTP '+response.status);
+ return response.json();
+}).then(data=>{
+ artistRoute=createArtistRoute({scene,data,canWalk:walkAllowed,floorHeight:levels.floorHeight,showDebug:new URLSearchParams(window.location.search).has('artistRoute')});
+ console.info('Traseul personajului a fost încărcat',artistRoute.stats);
+}).catch(error=>console.error('Traseul personajului nu a putut fi încărcat:',error));
 scene.updateMatrixWorld(true);
 // Dust suspended in the light.
 const dustGeo=new T.BufferGeometry(),dustPositions=[];for(let i=0;i<600;i++)dustPositions.push((rand()-.5)*38,rand()*22,(rand()-.5)*38);dustGeo.setAttribute('position',new T.Float32BufferAttribute(dustPositions,3));const dust=new T.Points(dustGeo,new T.PointsMaterial({color:'#ffe5b2',size:.025,transparent:true,opacity:.4,depthWrite:false}));scene.add(dust);
 // Camera navigation: click-to-travel, drag-to-look, keyboard and touch movement.
+let upperLevel=false,liftRide=null,pendingAfterLift=null;
 let lastWalkZone=null,travel=null,touring=false,tourTime=0,low=false,drag=null,moved=false;const keys=new Set(),touchKeys=new Set();const location=$('#location');
 function hideIntro(){$('#welcome').classList.add('leaving');$('#crosshair').hidden=false;}
 function setLook(target){const d=target.clone().sub(camera.position);yaw=Math.atan2(-d.x,-d.z);pitch=Math.atan2(d.y,Math.hypot(d.x,d.z));}
 function routeTo(pos){
  const from=camera.position.clone(),to=new T.Vector3(...pos),points=[from];
+ // Return from the terrace through the same open passage before other tours.
+ if(exteriorTerrace.walkable(from.x,from.z)&&from.z< -20){
+   if(from.z< -31.2)points.push(new T.Vector3(5.5,1.85,-31.8));
+   points.push(new T.Vector3(1.8,1.85,-17));
+ }
  if(camera.position.y<1.2&&levels.floorHeight(from.x,from.z,Math.min(0,from.y-1.85))<0){points.push(new T.Vector3(-7.9,-2.35,6.35));for(let i=0;i<=18;i++){const z=6.35+(12.45-6.35)*i/18;points.push(new T.Vector3(-7.9,levels.floorHeight(-7.9,z)+1.85,z));}points.push(new T.Vector3(-7.9,1.85,13.25));}
  const currentRoom=zoneData.find(z=>{const p=roomLocal(z,from.x,from.z);return Math.abs(p.x)<3.5&&p.z<0&&p.z> -13;});
  if(currentRoom)points.push(zonePoint(currentRoom,0,1.85,3));
@@ -132,7 +173,52 @@ function routeTo(pos){
  const lengths=[0];for(let i=1;i<points.length;i++)lengths.push(lengths[i-1]+points[i].distanceTo(points[i-1]));return {points,lengths,total:lengths.at(-1)};
 }
 
-function go(pos,look,after){hideIntro();touring=false;$('#tour').setAttribute('aria-pressed','false');const route=routeTo(pos);travel={route,from:camera.position.clone(),to:new T.Vector3(...pos),start:performance.now(),duration:reduced?0:Math.max(1800,route.total*95),look:new T.Vector3(...look),fromYaw:yaw,fromPitch:pitch,after};keys.clear();touchKeys.clear();}
+function go(pos,look,after,liftApproach=false){if(liftRide||(liftButton.disabled&&!liftApproach))return;if(upperLevel){pendingAfterLift=()=>go(pos,look,after);rideLift(false);return;}hideIntro();touring=false;$('#tour').setAttribute('aria-pressed','false');const route=routeTo(pos);travel={route,from:camera.position.clone(),to:new T.Vector3(...pos),start:performance.now(),duration:reduced?0:Math.max(1800,route.total*95),look:new T.Vector3(...look),fromYaw:yaw,fromPitch:pitch,after};keys.clear();touchKeys.clear();}
+const liftButton=$('#liftButton'),exitLiftButton=$('#exitLiftButton');
+function setLiftLabel(){liftButton.textContent=upperLevel?'⬇ Lift la parter':'⬆ Lift la etaj';liftButton.setAttribute('aria-label',upperLevel?'Coboară la parter cu liftul':'Urcă la etaj cu liftul');}
+function rideLift(up){
+ if(liftRide||travel)return;
+ hideIntro();touring=false;$('#tour').setAttribute('aria-pressed','false');keys.clear();touchKeys.clear();
+ liftButton.disabled=true;exitLiftButton.hidden=true;$('#zoneInfo').hidden=true;
+ const targetY=(up?0:liftTop)+1.85;
+ const start=new T.Vector3(camera.position.x,targetY,camera.position.z),dest=new T.Vector3(liftX,targetY,liftZ),points=[start];
+ if(!up){ // Follow the circular gallery to the lift, without crossing the void.
+  let startAngle=Math.atan2(start.x,-(start.z-ROTUNDA_CENTER_Z));
+  const startRadius=Math.hypot(start.x,start.z-ROTUNDA_CENTER_Z);
+  if(startRadius>17.08){
+    // Return via a real gallery connector before following the inner walkway.
+    const connectors=[-3*Math.PI/8,-Math.PI/8,Math.PI/8,3*Math.PI/8];
+    const connector=connectors.reduce((best,a)=>Math.abs(a-startAngle)<Math.abs(best-startAngle)?a:best);
+    const point=(a,r)=>new T.Vector3(Math.sin(a)*r,targetY,ROTUNDA_CENTER_Z-Math.cos(a)*r);
+    if(startRadius>23.2){
+      points.push(point(startAngle,24.2));
+      const n=Math.max(1,Math.ceil(Math.abs(connector-startAngle)/.10));
+      for(let i=1;i<=n;i++)points.push(point(startAngle+(connector-startAngle)*i/n,24.2));
+      points.push(point(connector,23));
+    }
+    points.push(point(connector,16.4));startAngle=connector;
+  }
+  const delta=T.MathUtils.euclideanModulo(liftAngle-startAngle+Math.PI,Math.PI*2)-Math.PI;
+  const n=Math.max(1,Math.ceil(Math.abs(delta)/.18));
+  for(let i=0;i<=n;i++){const a=startAngle+delta*i/n;points.push(new T.Vector3(Math.sin(a)*16.4,targetY,ROTUNDA_CENTER_Z-Math.cos(a)*16.4));}
+ }
+ points.push(dest);const lengths=[0];for(let i=1;i<points.length;i++)lengths.push(lengths[i-1]+points[i].distanceTo(points[i-1]));
+ const begin=()=>{liftRide={from:up?0:liftTop,to:up?liftTop:0,start:performance.now(),duration:reduced?0:5000,up};location.textContent=up?'LIFT / URCARE':'LIFT / COBORÂRE';};
+ if(up){liftButton.textContent='Se deplasează spre lift…';go(dest.toArray(),[0,targetY,-1],begin,true);}
+ else {liftButton.textContent='Se deplasează spre lift…';travel={route:{points,lengths,total:lengths.at(-1)},from:start,to:dest,start:performance.now(),duration:reduced?0:Math.max(400,Math.min(4500,lengths.at(-1)*120)),look:new T.Vector3(0,targetY,-1),fromYaw:yaw,fromPitch:pitch,after:begin};}
+}
+liftButton.addEventListener('click',()=>rideLift(!upperLevel));
+// The exit remains available until the visitor reaches the circular walkway.
+exitLiftButton.addEventListener('click',()=>{
+ if(!upperLevel||liftRide||travel)return;
+ keys.clear();touchKeys.clear();exitLiftButton.hidden=true;
+ const from=camera.position.clone(),r=16.38;
+ const to=new T.Vector3(Math.sin(liftAngle)*r,liftTop+1.85,ROTUNDA_CENTER_Z-Math.cos(liftAngle)*r);
+ const points=[from,to],total=from.distanceTo(to);
+ const look=new T.Vector3(to.x+Math.cos(liftAngle)*3,to.y,to.z+Math.sin(liftAngle)*3);
+ travel={route:{points,lengths:[0,total],total},from,to,start:performance.now(),duration:reduced?0:Math.max(900,total*600),look,fromYaw:yaw,fromPitch:pitch,after:()=>{location.textContent='ETAJ / PASARELĂ';canvas.focus({preventScroll:true});}};
+});
+
 // Choose a walkable viewpoint with a direct line to the real sun. Transparent
 // glazing stays visible but does not count as an opaque obstruction.
 $('#sunView').addEventListener('click',()=>{
@@ -163,25 +249,65 @@ $('#sunView').addEventListener('click',()=>{
 function findGraffitiArtist(){
  if(!graffitiAlcove)return;
  graffitiAlcove.updateWorldMatrix(true,false);
- const moving=graffiti?.getPosition();
- const from=moving?new T.Vector3(moving.x+2.2,moving.y+1.85,moving.z+3.5):graffitiAlcove.localToWorld(new T.Vector3(0,1.85,3.7));
- const look=moving?new T.Vector3(moving.x,moving.y+1.2,moving.z):graffitiAlcove.localToWorld(new T.Vector3(0,1.45,-1.49));
+ const from=graffitiAlcove.localToWorld(new T.Vector3(0,1.85,3.7));
+ const look=graffitiAlcove.localToWorld(new T.Vector3(0,1.45,-1.49));
  $('#zoneInfo').hidden=true;$('#map').hidden=true;$('#mapToggle').setAttribute('aria-expanded','false');
  go(from.toArray(),look.toArray(),()=>{location.textContent='ATRIUM / ARTIST GRAFFITI';});
 }
 $('#findArtist').addEventListener('click',findGraffitiArtist);
+function findTerrace(){
+ if(liftRide||liftButton.disabled)return;
+ if(upperLevel){pendingAfterLift=findTerrace;rideLift(false);return;}
+ hideIntro();touring=false;$('#tour').setAttribute('aria-pressed','false');
+ $('#zoneInfo').hidden=true;$('#map').hidden=true;$('#mapToggle').setAttribute('aria-expanded','false');
+ const route=routeTo([1.8,1.85,-17]);
+ for(const coords of [[5.5,1.85,-31.8],[5.5,1.85,-38.4]]){
+  const p=new T.Vector3(...coords),last=route.points.at(-1);route.total+=last.distanceTo(p);route.points.push(p);route.lengths.push(route.total);
+ }
+ const to=route.points.at(-1).clone();
+ travel={route,from:camera.position.clone(),to,start:performance.now(),duration:reduced?0:Math.max(1800,route.total*120),look:new T.Vector3(5.5,1.85,-75),fromYaw:yaw,fromPitch:pitch,after:()=>{location.textContent='TERASĂ / VEDERE SPRE ORAȘ';canvas.focus({preventScroll:true});}};
+ keys.clear();touchKeys.clear();
+}
+$('#findTerrace').addEventListener('click',findTerrace);
+
 function openStudy(index){const study=details.studies[index];$('#studyImage').src=study.image;$('#studyTitle').textContent=study.title;$('#studyText').textContent=study.description;$('#studyDialog').showModal();keys.clear();touchKeys.clear();}
 $('#studyClose').onclick=()=>$('#studyDialog').close();document.querySelectorAll('[data-study]').forEach(b=>b.onclick=()=>openStudy(Number(b.dataset.study)));
 $('#studyDialog').addEventListener('close',()=>canvas.focus());
 function showZone(z){lastWalkZone=z.id;$('#skinActions').hidden=z.id!=='skin';$('#zoneNumber').textContent=z.index;$('#zoneTitle').textContent=z.name;$('#zoneText').textContent=z.text;$('#zoneInfo').hidden=false;location.textContent=`${z.name} / GALERIE`;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.zone===z.id));}
 function visit(id){const z=zoneData.find(z=>z.id===id);$('#map').hidden=true;$('#mapToggle').setAttribute('aria-expanded','false');$('#zoneInfo').hidden=true;go(zonePoint(z,0,1.85,-4.5).toArray(),zonePoint(z,0,3,-12).toArray(),()=>showZone(z));}
-document.querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>visit(b.dataset.zone));$('#enter').onclick=()=>{go([8.8,1.85,7.8],[0,5,-5]);canvas.focus()};function reset(){ $('#zoneInfo').hidden=true;document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));location.textContent='ATRIUM / INTRARE';go([0,3.8,15.8],[0,5.2,-8]);}$('#home').onclick=e=>{e.preventDefault();reset()};$('#reset').onclick=()=>{reset();$('#map').hidden=true;$('#mapToggle').setAttribute('aria-expanded','false')};$('#zoneClose').onclick=()=>$('#zoneInfo').hidden=true;$('#mapToggle').onclick=()=>{const m=$('#map');m.hidden=!m.hidden;$('#mapToggle').setAttribute('aria-expanded',String(!m.hidden))};$('#mapClose').onclick=()=>{$('#map').hidden=true;$('#mapToggle').setAttribute('aria-expanded','false')};$('#tour').onclick=()=>{hideIntro();travel=null;touring=!touring;tourTime=0;$('#tour').setAttribute('aria-pressed',String(touring));$('#zoneInfo').hidden=true;};$('#quality').onclick=()=>{low=!low;renderer.setPixelRatio(low?1:Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=!low;dust.visible=!low;$('#quality').textContent=low?'Calitate: economică':'Calitate: ridicată';$('#quality').setAttribute('aria-pressed',String(low))};
-const movementKeys=['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'];window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if($('#studyDialog').open||e.target.closest('input,button,a,select,textarea'))return;if(movementKeys.includes(k)){e.preventDefault();keys.add(k);hideIntro();travel=null;touring=false;$('#tour').setAttribute('aria-pressed','false')}if(k==='escape'){travel=null;keys.clear();touchKeys.clear();$('#zoneInfo').hidden=true;$('#map').hidden=true;$('#mapToggle').setAttribute('aria-expanded','false')}});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{keys.clear();touchKeys.clear();drag=null});
-canvas.addEventListener('pointerdown',e=>{canvas.focus();drag={x:e.clientX,y:e.clientY,id:e.pointerId};moved=false;canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>2)moved=true;if(moved){travel=null;touring=false;$('#tour').setAttribute('aria-pressed','false');yaw-=dx*.004;pitch=T.MathUtils.clamp(pitch-dy*.003,-1.1,1.1);}drag.x=e.clientX;drag.y=e.clientY});const ray=new T.Raycaster(),mouse=new T.Vector2();canvas.addEventListener('pointerup',e=>{if(drag&&!moved){mouse.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);ray.setFromCamera(mouse,camera);const hit=ray.intersectObjects([...clickable,...details.selectable,...(graffiti?.selectable||[])],true)[0];if(hit){if(graffiti?.ownsObject(hit.object))graffiti.turn();else if(hit.object.userData.study!==undefined)openStudy(hit.object.userData.study);else if(hit.object.userData.zone)visit(hit.object.userData.zone)}}drag=null});canvas.addEventListener('pointercancel',()=>drag=null);
-document.querySelectorAll('[data-move]').forEach(b=>{b.addEventListener('pointerdown',e=>{e.preventDefault();hideIntro();travel=null;touring=false;$('#tour').setAttribute('aria-pressed','false');touchKeys.add(b.dataset.move);b.setPointerCapture(e.pointerId)});for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,()=>touchKeys.delete(b.dataset.move));});
+document.querySelectorAll('[data-zone]').forEach(b=>b.onclick=()=>visit(b.dataset.zone));$('#enter').onclick=()=>{go([8.8,1.85,7.8],[0,5,-5]);canvas.focus()};function reset(){ $('#zoneInfo').hidden=true;document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));location.textContent='ATRIUM / INTRARE';go([0,3.8,15.8],[0,5.2,-8]);}$('#home').onclick=e=>{e.preventDefault();reset()};$('#reset').onclick=()=>{reset();$('#map').hidden=true;$('#mapToggle').setAttribute('aria-expanded','false')};$('#zoneClose').onclick=()=>$('#zoneInfo').hidden=true;$('#mapToggle').onclick=()=>{const m=$('#map');m.hidden=!m.hidden;$('#mapToggle').setAttribute('aria-expanded',String(!m.hidden))};$('#mapClose').onclick=()=>{$('#map').hidden=true;$('#mapToggle').setAttribute('aria-expanded','false')};$('#tour').onclick=()=>{if(liftRide||liftButton.disabled)return;if(upperLevel){pendingAfterLift=()=>$('#tour').click();rideLift(false);return;}hideIntro();travel=null;touring=!touring;tourTime=0;$('#tour').setAttribute('aria-pressed',String(touring));$('#zoneInfo').hidden=true;};$('#quality').onclick=()=>{low=!low;renderer.setPixelRatio(low?1:Math.min(devicePixelRatio,1.7));renderer.shadowMap.enabled=!low;dust.visible=!low;$('#quality').textContent=low?'Calitate: economică':'Calitate: ridicată';$('#quality').setAttribute('aria-pressed',String(low))};
+const movementKeys=['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'];window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if($('#studyDialog').open||e.target.closest('input,button,a,select,textarea'))return;if(movementKeys.includes(k)){e.preventDefault();if(liftRide||liftButton.disabled)return;keys.add(k);hideIntro();travel=null;touring=false;$('#tour').setAttribute('aria-pressed','false')}if(k==='escape'){if(liftRide||liftButton.disabled)return;travel=null;keys.clear();touchKeys.clear();$('#zoneInfo').hidden=true;$('#map').hidden=true;$('#mapToggle').setAttribute('aria-expanded','false')}});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{keys.clear();touchKeys.clear();drag=null});
+canvas.addEventListener('pointerdown',e=>{canvas.focus();drag={x:e.clientX,y:e.clientY,id:e.pointerId};moved=false;canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>2)moved=true;if(moved){if(liftRide||liftButton.disabled)return;travel=null;touring=false;$('#tour').setAttribute('aria-pressed','false');yaw-=dx*.004;pitch=T.MathUtils.clamp(pitch-dy*.003,-1.1,1.1);}drag.x=e.clientX;drag.y=e.clientY});const ray=new T.Raycaster(),mouse=new T.Vector2();canvas.addEventListener('pointerup',e=>{if(drag&&!moved){mouse.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);ray.setFromCamera(mouse,camera);const hit=ray.intersectObjects([...clickable,...details.selectable,...(graffiti?.selectable||[])],true)[0];if(hit){if(graffiti?.ownsObject(hit.object))graffiti.turn();else if(hit.object.userData.study!==undefined)openStudy(hit.object.userData.study);else if(hit.object.userData.zone)visit(hit.object.userData.zone)}}drag=null});canvas.addEventListener('pointercancel',()=>drag=null);
+document.querySelectorAll('[data-move]').forEach(b=>{b.addEventListener('pointerdown',e=>{e.preventDefault();if(liftRide||liftButton.disabled)return;hideIntro();travel=null;touring=false;$('#tour').setAttribute('aria-pressed','false');touchKeys.add(b.dataset.move);b.setPointerCapture(e.pointerId)});for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,()=>touchKeys.delete(b.dataset.move));});
+function upperWalkable(x,z){
+ const radius=Math.hypot(x,z-ROTUNDA_CENTER_Z);
+ const dx=x-liftX,dz=z-liftZ;
+ // These coordinates follow the rectangular platform and its landing.
+ const along=dx*Math.sin(liftAngle)-dz*Math.cos(liftAngle);
+ const side=dx*Math.cos(liftAngle)+dz*Math.sin(liftAngle);
+ const onPlatform=Math.abs(side)<=1.08&&along>=-1.08&&along<=1.30;
+ const onLanding=Math.abs(side)<=.94&&along>=1.05&&along<=landingEnd+.12;
+ const onWalkway=radius>=15.75&&radius<=17.08;
+ const angle=Math.atan2(x,-(z-ROTUNDA_CENTER_Z));
+ const onRearGallery=radius>=22.95&&radius<=30.65&&Math.abs(angle)<=1.22;
+ const onConnector=[-3*Math.PI/8,-Math.PI/8,Math.PI/8,3*Math.PI/8].some(a=>{
+   const radial=x*Math.sin(a)-(z-ROTUNDA_CENTER_Z)*Math.cos(a);
+   const lateral=x*Math.cos(a)+(z-ROTUNDA_CENTER_Z)*Math.sin(a);
+   return Math.abs(lateral)<=.49&&radial>=16.90&&radial<=23.20;
+ });
+ return onPlatform||onLanding||onWalkway||onConnector||onRearGallery;
+}
 function walkAllowed(x,z,ground=0){
  if(!levels.canWalk(x,z,ground))return false;
+ if(ground>-.55&&exteriorTerrace.walkable(x,z))return true;
+ // Walk through the marked entrance without allowing passage through the
+ // adjacent solid perimeter walls. The paving already extends to this point.
+ if(ground>-.55){const a=7*Math.PI/8,dx=x,dz=z-ROTUNDA_CENTER_Z;
+  const radial=dx*Math.sin(a)-dz*Math.cos(a),lateral=dx*Math.cos(a)+dz*Math.sin(a);
+  if(radial>=16.9&&radial<=25&&Math.abs(lateral)<=1.15)return true;
+ }
  if(Math.hypot(x,z-ROTUNDA_CENTER_Z)<5.5)return false;
+ if(skinNiche){const p=roomLocal(zoneData[0],x,z);if(p.x>skinNiche.minX&&p.x<skinNiche.maxX&&p.z<skinNiche.nearZ&&p.z>skinNiche.farZ)return false;}
  for(const b of lowerParts.colliders){const p=roomLocal(zoneData[b.index],x,z);if(p.x>b.minX&&p.x<b.maxX&&p.z>b.minZ&&p.z<b.maxZ)return false;}
  const skin=roomLocal(zoneData[0],x,z),oldX=skin.x+zoneData[0].originalX,oldZ=skin.z-13;
  if(details.colliders.some(b=>oldX>b.minX&&oldX<b.maxX&&oldZ>b.minZ&&oldZ<b.maxZ))return false;
@@ -190,60 +316,18 @@ function walkAllowed(x,z,ground=0){
  return Math.hypot(x,z-ROTUNDA_CENTER_Z)<ROTUNDA_RADIUS-1;
 }
 
-// Low uniform limits on mobile GPUs cannot support every local light at once.
-// Keep the astronomical sun and ambient lights; choose nearby gallery lights.
-const glContext=renderer.getContext();
-const useMobileLightBudget=glContext.getParameter(glContext.MAX_FRAGMENT_UNIFORM_VECTORS)<=256;
-const budgetedLights=[];
-if(useMobileLightBudget){
- scene.traverse(o=>{if((o.isPointLight||o.isSpotLight)&&o.visible)budgetedLights.push(o)});
-}
-const lightWorldPosition=new T.Vector3();
-function selectMobileLights(){
- if(!useMobileLightBudget)return;
- scene.updateMatrixWorld(true);
- for(const [kind,limit] of [['isPointLight',6],['isSpotLight',2]]){
-  const ranked=budgetedLights.filter(o=>o[kind]).map(o=>{o.getWorldPosition(lightWorldPosition);return {o,d:lightWorldPosition.distanceToSquared(camera.position)}});
-  ranked.sort((a,b)=>a.d-b.d);
-  ranked.forEach(({o},i)=>{o.visible=i<limit});
- }
-}
-selectMobileLights();
 let last=performance.now(),clock=0;function animate(now){const dt=Math.min((now-last)/1000,.04);last=now;clock+=dt;
-if(travel){const t=travel.duration?Math.min((now-travel.start)/travel.duration,1):1,u=t*t*(3-2*t);const dist=u*travel.route.total;let segment=1;while(segment<travel.route.lengths.length-1&&travel.route.lengths[segment]<dist)segment++;const prev=travel.route.lengths[segment-1],span=travel.route.lengths[segment]-prev;camera.position.lerpVectors(travel.route.points[segment-1],travel.route.points[segment],span?(dist-prev)/span:1);const d=travel.look.clone().sub(travel.to),ty=Math.atan2(-d.x,-d.z),tp=Math.atan2(d.y,Math.hypot(d.x,d.z));let diff=T.MathUtils.euclideanModulo(ty-travel.fromYaw+Math.PI,Math.PI*2)-Math.PI;yaw=travel.fromYaw+diff*u;pitch=T.MathUtils.lerp(travel.fromPitch,tp,u);if(t===1){const cb=travel.after;travel=null;cb?.()}}
+if(liftRide){const t=liftRide.duration?Math.min((now-liftRide.start)/liftRide.duration,1):1,u=t*t*(3-2*t),height=T.MathUtils.lerp(liftRide.from,liftRide.to,u);liftCar.position.y=height;camera.position.set(liftX,height+1.85,liftZ);if(t===1){upperLevel=liftRide.up;liftRide=null;liftButton.disabled=false;setLiftLabel();exitLiftButton.hidden=!upperLevel;if(upperLevel){setLook(new T.Vector3(Math.sin(liftAngle)*16.4,liftTop+1.85,ROTUNDA_CENTER_Z-Math.cos(liftAngle)*16.4));canvas.focus({preventScroll:true});}location.textContent=upperLevel?'ETAJ / IEȘIRE SPRE PASARELĂ':'ATRIUM / LIFT';if(!upperLevel&&pendingAfterLift){const next=pendingAfterLift;pendingAfterLift=null;next();}}}
+else if(travel){const t=travel.duration?Math.min((now-travel.start)/travel.duration,1):1,u=t*t*(3-2*t);const dist=u*travel.route.total;let segment=1;while(segment<travel.route.lengths.length-1&&travel.route.lengths[segment]<dist)segment++;const prev=travel.route.lengths[segment-1],span=travel.route.lengths[segment]-prev;camera.position.lerpVectors(travel.route.points[segment-1],travel.route.points[segment],span?(dist-prev)/span:1);const d=travel.look.clone().sub(travel.to),ty=Math.atan2(-d.x,-d.z),tp=Math.atan2(d.y,Math.hypot(d.x,d.z));let diff=T.MathUtils.euclideanModulo(ty-travel.fromYaw+Math.PI,Math.PI*2)-Math.PI;yaw=travel.fromYaw+diff*u;pitch=T.MathUtils.lerp(travel.fromPitch,tp,u);if(t===1){const cb=travel.after;travel=null;cb?.()}}
 else if(touring){tourTime+=dt;const a=frontLayout?Math.sin(tourTime*.12)*1.15:tourTime*.12;camera.position.set(Math.sin(a)*17,3.3+Math.sin(a*.7)*.6,Math.cos(a)*17-1);setLook(new T.Vector3(0,6,-1));location.textContent='ATRIUM / TUR';}
-else if(!$('#studyDialog').open){const forward=Number(keys.has('w')||keys.has('arrowup')||touchKeys.has('forward'))-Number(keys.has('s')||keys.has('arrowdown')||touchKeys.has('back'));const side=Number(keys.has('d')||keys.has('arrowright')||touchKeys.has('right'))-Number(keys.has('a')||keys.has('arrowleft')||touchKeys.has('left'));if(forward||side){const len=Math.hypot(forward,side),speed=dt*4.5/len,dx=(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed,dz=(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed;if(walkAllowed(camera.position.x+dx,camera.position.z,Math.min(0,camera.position.y-1.85)))camera.position.x+=dx;if(walkAllowed(camera.position.x,camera.position.z+dz,Math.min(0,camera.position.y-1.85)))camera.position.z+=dz;camera.position.y=T.MathUtils.lerp(camera.position.y,levels.floorHeight(camera.position.x,camera.position.z,Math.min(0,camera.position.y-1.85))+1.85,.45);const z=zoneData.find(z=>{const p=roomLocal(z,camera.position.x,camera.position.z);return Math.abs(p.x)<3&&p.z< -2;});location.textContent=z?`${z.name} / GALERIE`:camera.position.y<0?'NIVEL INFERIOR / EXPLORARE':'ATRIUM / EXPLORARE';if(z&&lastWalkZone!==z.id)showZone(z);if(!z)lastWalkZone=null;}}
+else if(!$('#studyDialog').open){const forward=Number(keys.has('w')||keys.has('arrowup')||touchKeys.has('forward'))-Number(keys.has('s')||keys.has('arrowdown')||touchKeys.has('back'));const side=Number(keys.has('d')||keys.has('arrowright')||touchKeys.has('right'))-Number(keys.has('a')||keys.has('arrowleft')||touchKeys.has('left'));if(forward||side){const len=Math.hypot(forward,side),speed=dt*4.5/len,dx=(-Math.sin(yaw)*forward+Math.cos(yaw)*side)*speed,dz=(-Math.cos(yaw)*forward-Math.sin(yaw)*side)*speed;const canMove=(x,z)=>upperLevel?upperWalkable(x,z):walkAllowed(x,z,Math.min(0,camera.position.y-1.85));if(canMove(camera.position.x+dx,camera.position.z+dz)){camera.position.x+=dx;camera.position.z+=dz;}else{if(canMove(camera.position.x+dx,camera.position.z))camera.position.x+=dx;if(canMove(camera.position.x,camera.position.z+dz))camera.position.z+=dz;}if(upperLevel&&Math.hypot(camera.position.x,camera.position.z-ROTUNDA_CENTER_Z)>=15.75)exitLiftButton.hidden=true;camera.position.y=T.MathUtils.lerp(camera.position.y,(upperLevel?liftTop:levels.floorHeight(camera.position.x,camera.position.z,Math.min(0,camera.position.y-1.85)))+1.85,.45);const z=zoneData.find(z=>{const p=roomLocal(z,camera.position.x,camera.position.z);return Math.abs(p.x)<3&&p.z< -2;});location.textContent=upperLevel?'ETAJ / PASARELĂ':z?`${z.name} / GALERIE`:camera.position.y<0?'NIVEL INFERIOR / EXPLORARE':'ATRIUM / EXPLORARE';if(!upperLevel&&z&&lastWalkZone!==z.id)showZone(z);if(!z)lastWalkZone=null;}}
 camera.rotation.set(pitch,yaw,0);if(!reduced){surfaceFinish.update(clock);details.update(clock);sculpture.rotation.y=Math.sin(clock*.1)*.16;sculpture.position.y=1.5+Math.sin(clock*.6)*.12;galleryObjects.forEach((m,i)=>{m.rotation.y=clock*(.12+i*.05);m.rotation.x=Math.sin(clock*.3)*.15});ripples.forEach((m,i)=>{const t=((clock*.08+i/7)%1);m.scale.setScalar(.4+t*4.2);m.material.opacity=(1-t)*.15});banners.forEach((b,k)=>{const p=b.geometry.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i);p.setZ(i,Math.sin(y*.8+clock*.65+k)*.07*(3.5-y)/7)}p.needsUpdate=true;b.geometry.computeVertexNormals()});dust.rotation.y=clock*.008;guide.rotation.y=-.2+Math.sin(clock*.4)*.05;}
 if(frontLayout)camera.position.y=Math.max(camera.position.y,levels.floorHeight(camera.position.x,camera.position.z,Math.min(0,camera.position.y-1.85))+1.65);
-if(artistRoute&&graffiti?.hasModel()&&!reduced){
- const pose=artistRoute.update(dt,1.05);graffiti.setWalkPose(pose.position,pose.heading,dt);
+if(artistRoute&&walker.hasModel()){
+ const pose=artistRoute.update(reduced?0:dt,1.05);
+ walker.setWalkPose(pose.position,pose.heading,dt);
 }
+walker.update(dt);
 graffiti?.update(dt);
-if(useMobileLightBudget&&Math.floor(clock*2)!==Math.floor((clock-dt)*2))selectMobileLights();
 $('#mapDot').setAttribute('cx',String(160+camera.position.x*4.5));$('#mapDot').setAttribute('cy',String(145+(camera.position.z-ROTUNDA_CENTER_Z)*4.5));visibleSky.follow(camera);visibleSky.tick(dt);exteriorWeather.update(dt);renderer.render(scene,camera);requestAnimationFrame(animate)}
-// Optional read-only runtime diagnostics: append ?diagnostic=1 to the URL.
-if(new URLSearchParams(window.location.search).get('diagnostic')==='1'){
- const audit=document.createElement('output');audit.id='scene-diagnostic';
- audit.style.cssText='position:fixed;z-index:9999;bottom:12px;left:12px;max-width:calc(100vw - 24px);padding:12px 14px;border:1px solid #8addc1;background:#071516eE;color:#c9f6e8;font:12px/1.55 monospace;white-space:pre-wrap;pointer-events:none;border-radius:8px';
- document.body.appendChild(audit);
- let assetStatus='verificare...';const faults=[];
- window.addEventListener('error',ev=>{if(faults.length<3)faults.push((ev.message||'error').slice(0,140))});
- window.addEventListener('unhandledrejection',ev=>{if(faults.length<3)faults.push(String(ev.reason).slice(0,140))});
- Promise.all(['assets/marmura-albedo.png','assets/pardoseala-albedo.png','assets/paul-upper-segment-v1.glb','characters/graffiti-artist.glb'].map(url=>
-   fetch(url,{method:'HEAD',cache:'no-store'}).then(r=>r.ok).catch(()=>false)
- )).then(items=>{assetStatus=items.filter(Boolean).length+'/4 fișiere accesibile'});
- const writeAudit=()=>{
-  let meshes=0,visible=0,lit=0;
-  scene.traverse(o=>{if(o.isMesh){meshes++;if(o.visible)visible++;const mats=Array.isArray(o.material)?o.material:[o.material];if(mats.some(m=>m&&m.isMeshStandardMaterial))lit++}});
-  const gl=renderer.getContext(),lost=gl.isContextLost?.()||false;
-  audit.textContent='NINJA.SYS / DIAGNOSTIC\n'+
-   'Mod solar: '+($('#sunMode')?.textContent||'necunoscut')+'\n'+
-   'Mesh-uri: '+meshes+' (vizibile '+visible+', cu material iluminat '+lit+')\n'+
-   'Desenări GPU: '+renderer.info.render.calls+', triunghiuri: '+renderer.info.render.triangles+'\n'+
-   'Texturi GPU: '+renderer.info.memory.textures+'; context pierdut: '+lost+'\n'+
-   'Resurse: '+assetStatus+
-   (faults.length?'\nERORI: '+faults.join('; '):'');
- };
- setInterval(writeAudit,1800);setTimeout(writeAudit,800);
-}
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});if(new URLSearchParams(window.location.search).get('artist')==='1')requestAnimationFrame(findGraffitiArtist);renderer.render(scene,camera);$('#loader').style.opacity='0';setTimeout(()=>$('#loader').remove(),650);requestAnimationFrame(animate);

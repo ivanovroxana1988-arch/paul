@@ -1,5 +1,4 @@
-// Additional architecture behind the central upper openings. The meshes start
-// above the ground-floor rooms and leave the central passage and navigation intact.
+// Rear gallery: a continuous shell with open arches and an upper terrace.
 export function addDistantArchitecture({T,parent,mesh,box,pipe,stone,paleStone,metal,brass,centerZ}) {
   const root=new T.Group();
   root.name='distant-central-architecture';
@@ -34,9 +33,42 @@ export function addDistantArchitecture({T,parent,mesh,box,pipe,stone,paleStone,m
     const g=bay(a,31.2,'rear-gallery-arch-'+index);
     const width=[10.8,11.2,11.7,11.7,11.1,10.5][index];
     const spring=[15.3,15.8,16,16.2,15.8,15.4][index];
-    arch(g,width,spring,.65,1.0,9.9,stone);
+    arch(g,width,spring,.65,1.0,0,stone);
     // Thin inner edge brings out the depth of the stone arch.
-    arch(g,width,spring,.13,.16,10.0,paleStone);
+    arch(g,width,spring,.13,.16,0,paleStone);
+  }
+
+  // Masonry surrounds both storeys of each arch. The openings are real voids,
+  // so visitors can see through them toward the city at the upper level.
+  for(const [index,a] of [-1.02,-.62,-.235,.235,.62,1.02].entries()){
+    const g=bay(a,31.2,'rear-enclosing-wall-'+index);
+    const opening=[10.8,11.2,11.7,11.7,11.1,10.5][index];
+    const spring=[15.3,15.8,16,16.2,15.8,15.4][index];
+    const r=opening/2,halfWidth=6.55,lowerR=4.15,lowerSpring=5.05;
+    const top=spring+r+1.0,shape=new T.Shape();
+    shape.moveTo(-halfWidth,0);shape.lineTo(-lowerR,0);shape.lineTo(-lowerR,lowerSpring);
+    shape.absarc(0,lowerSpring,lowerR,Math.PI,0,true);shape.lineTo(lowerR,0);
+    shape.lineTo(halfWidth,0);shape.lineTo(halfWidth,top);shape.lineTo(-halfWidth,top);shape.closePath();
+    const aperture=new T.Path();aperture.moveTo(-r,9.95);aperture.lineTo(r,9.95);
+    aperture.lineTo(r,spring);aperture.absarc(0,spring,r,0,Math.PI,false);aperture.closePath();
+    shape.holes.push(aperture);
+    const wall=mesh(new T.ExtrudeGeometry(shape,{depth:.65,bevelEnabled:false,curveSegments:32}),stone,0,0,-.33,g);
+    wall.name='rear-wall-with-open-arcades';
+  }
+  // Solid first-floor surface reaches the outer arch wall. This partial ring
+  // leaves the central atrium and its daylight open.
+  const floorInner=22.95,floorOuter=31.18,sectorStart=-1.24,sectorEnd=1.24,floorY=9.95;
+  const floorShape=new T.Shape();
+  floorShape.absarc(0,0,floorOuter,Math.PI/2-sectorEnd,Math.PI/2-sectorStart,false);
+  floorShape.lineTo(Math.cos(Math.PI/2-sectorStart)*floorInner,Math.sin(Math.PI/2-sectorStart)*floorInner);
+  floorShape.absarc(0,0,floorInner,Math.PI/2-sectorStart,Math.PI/2-sectorEnd,true);floorShape.closePath();
+  const terrace=mesh(new T.ExtrudeGeometry(floorShape,{depth:.35,bevelEnabled:false,curveSegments:64}),stone,0,floorY-.35,centerZ,root);
+  terrace.rotation.x=-Math.PI/2;terrace.name='rear-gallery-first-floor';
+  // End walls close the sides of the shell while keeping the arches open.
+  for(const a of [sectorStart,sectorEnd]){
+    const g=bay(a,(floorInner+floorOuter)/2,'rear-gallery-side-wall');
+    const side=box(.65,9.95,floorOuter-floorInner,0,9.95/2,0,stone,g);
+    side.name='rear-gallery-side-wall-to-ground';
   }
 
   // Partial annulus: 1.5 m wide, curved in plan, placed BEHIND the existing
@@ -64,7 +96,7 @@ export function addDistantArchitecture({T,parent,mesh,box,pipe,stone,paleStone,m
   // Arched supports connect the bridge to the lower rear gallery.
   for(const [index,a] of [-1.02,-.62,-.235,.235,.62,1.02].entries()){
     const g=bay(a,radius,'bridge-support-arch-'+index);
-    arch(g,8.2,10.2,.36,.6,9.9,stone);
+    arch(g,8.2,10.2,.36,.6,0,stone);
   }
   return root;
 }

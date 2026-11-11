@@ -2,7 +2,9 @@
 export const PIT={left:-9.6,right:5.4,near:12.5,far:6.2,stairRight:-6.2,depth:4.2};
 export function addLevels({T,scene,mesh,box,pipe,stone,paleStone,darkStone,metal,brass,mint}){
 const {left,right,near,far,stairRight,depth}=PIT,steps=18,tread=(near-far)/steps,rise=depth/steps;
-const shape=new T.Shape();shape.moveTo(-21,-23);shape.lineTo(21,-23);shape.lineTo(21,27);shape.lineTo(-21,27);shape.closePath();
+// One continuous slab reaches the outer galleries and overlaps the exterior
+// ground beneath the terrace. Shape y is the negative of world z after rotation.
+const shape=new T.Shape();shape.moveTo(-27,-23);shape.lineTo(27,-23);shape.lineTo(27,32);shape.lineTo(-27,32);shape.closePath();
 const hole=new T.Path();hole.moveTo(left,-near);hole.lineTo(left,-far);hole.lineTo(right,-far);hole.lineTo(right,-near);hole.closePath();shape.holes.push(hole);
 const terrace=mesh(new T.ExtrudeGeometry(shape,{depth:.7,bevelEnabled:false}),stone,0,-.7,0);terrace.rotation.x=-Math.PI/2;terrace.name='terrace-with-open-void';
 box(19,.45,10,-2,-depth-.225,9.1,darkStone).name='lower-floor';

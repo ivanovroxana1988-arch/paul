@@ -6,4 +6,8 @@
 
 .sun-view{background:#cfe9da;border:0;color:#153a2d;padding:10px;width:100%;margin-top:14px;font-size:10px;font-weight:700;text-align:left}.sun-view:hover{background:#78e7c7}
 
+#liftButton{position:fixed;z-index:9;right:35px;bottom:105px;padding:12px 16px;background:#15382eeb;border:1px solid #7eb6a0;color:#e8f5e8;font-size:12px;letter-spacing:.3px}#liftButton:disabled{opacity:.8;cursor:wait}@media(max-width:800px){#liftButton{right:auto;left:22px;bottom:130px;padding:12px 14px}}
+
+#exitLiftButton{position:fixed;z-index:9;right:35px;bottom:158px;padding:12px 16px;background:#a9dfc5;color:#102a21;border:1px solid #d2ffea;font-size:12px;font-weight:700}#exitLiftButton[hidden]{display:none}@media(max-width:800px){#exitLiftButton{right:auto;left:22px;bottom:182px;padding:12px 14px}}
+
 .weather-readout{display:grid;gap:5px;margin:13px 0;padding:11px 0;border-top:1px solid #ffffff26;border-bottom:1px solid #ffffff26}.weather-readout span{font-size:9px;letter-spacing:.12em;color:#a8c9be}.weather-readout strong{font-size:13px;color:#edf5ed}.weather-readout small{font-size:10px;line-height:1.45;color:#b5c5bc}.weather-readout a{color:inherit;text-decoration:underline}

@@ -11,18 +11,12 @@ export function createSolarLight({T, scene, sun, sky, ambient, fill, onChange = 
   const blueSky = new T.Color('#b5d7de'), warmSky = new T.Color('#ff9a78');
   const normalAmbient = new T.Color('#d4bd92'), warmAmbient = new T.Color('#f08061');
   const coolFill = new T.Color('#7fb6bf'), warmFill = new T.Color('#e98b72');
-  // Start with a well-lit architectural demonstration. The visitor can still choose
-  // real Bucharest time, sunrise, sunset or any hour via the existing controls.
   // Sunrise has its own warm golden palette; the vivid sunset is unchanged.
   const dawnHorizon = new T.Color('#ffad67'), dawnGold = new T.Color('#ffd08c');
   const dawnHorizonSky = new T.Color('#dfa46f'), dawnTwilightSky = new T.Color('#ad8979');
   const dawnSky = new T.Color('#ffd4a4'), dawnAmbient = new T.Color('#edbc87'), dawnFill = new T.Color('#eac093');
   const blend = new T.Color();
   let mode = 'live', selected = 720, previewDate = null, timer = null;
-  // Interior exhibition lighting is independent of the astronomical sun.
-  // It keeps the building recognizable at night without falsifying the sun/shadows.
-  const galleryFill = new T.HemisphereLight('#ffe1bc', '#536774', 1.0);
-  scene.add(galleryFill);
   sun.target.position.copy(target); scene.add(sun.target);
   Object.assign(sun.shadow.camera, {left:-39,right:39,top:39,bottom:-39,near:.5,far:140});
   sun.shadow.camera.updateProjectionMatrix();
@@ -46,7 +40,6 @@ export function createSolarLight({T, scene, sun, sky, ambient, fill, onChange = 
     ambient.intensity=.10+.24*daylight;
     ambient.color.copy(normalAmbient).lerp(blend.copy(warmAmbient).lerp(dawnAmbient,morning),glow*.75);
     fill.intensity=.07+.35*daylight;
-    galleryFill.intensity=.18+1.05*(1-daylight);
     fill.color.copy(coolFill).lerp(blend.copy(warmFill).lerp(dawnFill,morning),glow*.6);
     scene.background.copy(night).lerp(day,daylight);
     // The environment tint is atmospheric ambience, not a reconstruction of

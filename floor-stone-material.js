@@ -8,7 +8,7 @@ export function applyFloorStone({T,scene}) {
   texture.anisotropy=4;
   const variants=new Map();
   scene.traverse(object=>{
-   if(!object.isMesh || !(object.name==='terrace-with-open-void'||object.name==='central-hall-floor'||object.name==='lower-floor'||object.name==='pool-stone-rim'||object.name.startsWith('stair-')))return;
+   if(!object.isMesh || !(object.name==='terrace-with-open-void'||object.name==='lower-floor'||object.name==='pool-stone-rim'||object.name.startsWith('stair-')))return;
    const source=object.material;
    if(!source || Array.isArray(source) || !source.isMeshStandardMaterial)return;
    let material=variants.get(source);
@@ -66,4 +66,3 @@ if(floorTop>.5){
   });
  },undefined,()=>console.warn('Textura pardoselii nu a putut fi încărcată; rămâne materialul anterior.'));
 }
-

@@ -19,7 +19,31 @@ for(let r=5.5;r<18.4;r+=1.05)circle(r,yAt(r),.023,brass);
 const glass=simple?new T.MeshLambertMaterial({color:'#aac5ca',transparent:true,opacity:.18,side:T.DoubleSide,depthWrite:false}):new T.MeshPhysicalMaterial({color:'#a9cddb',roughness:.28,metalness:.02,transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false});
 // Geometry has curvature in both radial and circumferential directions.
 for(let i=0;i<count;i++){const positions=[],uv=[],indices=[],nr=12,na=6,a0=i/count*Math.PI*2,a1=(i+1)/count*Math.PI*2;for(let j=0;j<=nr;j++)for(let k=0;k<=na;k++){const r=4.5+(R-4.5)*j/nr,a=a0+(a1-a0)*k/na,p=pt(r,a);positions.push(p.x,p.y+.035,p.z);uv.push(k/na,j/nr);}for(let j=0;j<nr;j++)for(let k=0;k<na;k++){const n=j*(na+1)+k;indices.push(n,n+na+1,n+1,n+1,n+na+1,n+na+2);}const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.setIndex(indices);geo.computeVertexNormals();mesh(geo,glass,0,0,0,glazing,false).name='curved-glass-sector-'+i;}
-function walkway(r,width,y,name){const s=new T.Shape();s.absarc(0,0,r+width/2,0,Math.PI*2,false);const h=new T.Path();h.absarc(0,0,r-width/2,0,Math.PI*2,true);s.holes.push(h);const o=mesh(new T.ExtrudeGeometry(s,{depth:.14,bevelEnabled:false,curveSegments:64}),metal,0,y,CZ,service);o.rotation.x=-Math.PI/2;o.name=name;for(const rr of [r-width/2,r+width/2]){circle(rr,y+1.05,.035,brass,service);circle(rr,y+.52,.026,metal,service);for(let i=0;i<32;i++){const a=i*Math.PI/16,x=Math.sin(a)*rr,z=CZ-Math.cos(a)*rr;shadowPipe([x,y,z],[x,y+1.1,z],.028,metal,service);}}}
+function walkway(r,width,y,name){
+ const s=new T.Shape();s.absarc(0,0,r+width/2,0,Math.PI*2,false);
+ const h=new T.Path();h.absarc(0,0,r-width/2,0,Math.PI*2,true);s.holes.push(h);
+ const o=mesh(new T.ExtrudeGeometry(s,{depth:.14,bevelEnabled:false,curveSegments:64}),metal,0,y,CZ,service);
+ o.rotation.x=-Math.PI/2;o.name=name;
+ const opening=name==='dome-perimeter-walkway'&&!simple,half=.05,centers=[3*Math.PI/8,2*Math.PI-3*Math.PI/8];
+ function splitRing(rr,height,thickness,material){
+  const pieces=[[0,centers[0]-half],[centers[0]+half,centers[1]-half],[centers[1]+half,2*Math.PI]];
+  for(const [start,end] of pieces){
+   const count=Math.max(6,Math.ceil((end-start)*24)),points=[];
+   for(let i=0;i<=count;i++){const a=start+(end-start)*i/count;points.push(new T.Vector3(Math.sin(a)*rr,height,CZ-Math.cos(a)*rr));}
+   const rail=mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points),count,thickness,6,false),material,0,0,0,service);
+   rail.name='dome-inner-rail-with-bridge-openings';rail.castShadow=true;
+  }
+ }
+ for(const rr of [r-width/2,r+width/2]){
+  const isInner=opening&&rr===r-width/2;
+  for(const [height,thickness,material] of [[1.05,.035,brass],[.52,.026,metal]]){
+   if(isInner)splitRing(rr,y+height,thickness,material);else circle(rr,y+height,thickness,material,service);
+  }
+  const post=a=>{const x=Math.sin(a)*rr,z=CZ-Math.cos(a)*rr;shadowPipe([x,y,z],[x,y+1.1,z],.028,metal,service);};
+  for(let i=0;i<32;i++){const a=i*Math.PI/16;if(isInner&&centers.some(c=>Math.abs(a-c)<half))continue;post(a);}
+  if(isInner)for(const c of centers){post(c-half);post(c+half);}
+ }
+}
 walkway(4.05,.9,yAt(4.05)-.35,'oculus-service-ring');walkway(18.1,1,base-.2,'dome-perimeter-walkway');
 const lightMat=new T.MeshBasicMaterial({color:'#ffd18a'});for(let i=0;i<16;i++){const a=i*Math.PI/8,p=pt(4.05,a),lamp=box(.28,.08,.18,p.x,p.y-.46,p.z,lightMat,service);lamp.rotation.y=-a;}
 // Curved pipe bundles join the roof ribs to the vertical wall services.

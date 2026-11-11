@@ -1,5 +1,5 @@
-import {addDome} from './dome.js?v=2';
-import {addUpperDetails} from './upper-details.js';
+import {addDome} from './dome.js?v=raised-bridge-1';
+import {addUpperDetails} from './upper-details.js?v=raised-bridge-1';
 import {addDistantArchitecture} from './distant-architecture.js?v=2';
 // Shared upper-storey geometry for the clay study and the full WebGL scene.
 // The visible structure, narrow walkways and recessed glazing are separate layers.

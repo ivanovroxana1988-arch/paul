@@ -4,7 +4,7 @@ import {createArtistRoute} from './characters/artist-route.js';
 import * as T from './vendor/three.module.js';
 import {finishSurfaces} from './surface-finish.js?v=3';
 import {addAtelierDetail} from './atelier-detail.js';
-import {buildRotunda,ROTUNDA_RADIUS,ROTUNDA_CENTER_Z} from './rotunda.js?v=5';
+import {buildRotunda,ROTUNDA_RADIUS,ROTUNDA_CENTER_Z} from './rotunda.js?v=raised-bridge-1';
 import {addLevels} from './levels.js?v=2';
 import {addLowerArcadeDetails} from './lower-arcades.js';
 import {createSolarLight} from './solar/solar-light.js?v=8';

@@ -1,3 +1,5 @@
+import {addReferenceOverheadBridge} from './reference-overhead-bridge.js?v=1';
+import {addUpperLevelLandings} from './upper-level-landings.js?v=2';
 // Reference-led upper gallery: all details remain real geometry in clay mode.
 export function addUpperDetails({T,structure,walkways,windows,mesh,box,pipe,metal,brass,paleStone,simple}){
 const R=18.5,CZ=-1,Y=9.95;
@@ -13,9 +15,14 @@ for(let i=0;i<8;i++){const g=bay(i*Math.PI/4,18.5,9.85,structure);for(const x of
 const paper=simple?paleStone:new T.MeshStandardMaterial({color:'#d2c2a2',roughness:1,side:T.DoubleSide});
 // Banners are narrow hanging cloth meshes, with uneven lower hems.
 for(const a of [-Math.PI/8,Math.PI/8,5*Math.PI/8]){const g=bay(a,18.1,10.1,structure);pipe([-1.5,7.6,.5],[1.5,7.6,.5],.06,brass,g);pipe([-1.5,7.6,.5],[-1.5,7.6,-1],.08,metal,g);const geo=new T.PlaneGeometry(2.5,6.4,6,12),p=geo.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i);p.setZ(i,Math.sin(p.getX(i)*4+y)*.055);if(y< -3)p.setY(i,y+.18*Math.sin(i*3.7));}geo.computeVertexNormals();mesh(geo,paper,0,4.3,.5,g);if(!simple){for(let j=0;j<3;j++){const pts=[];for(let k=0;k<32;k++){const t=k/31;pts.push(new T.Vector3(Math.sin(t*7+j*.3)*(.25+t*.4),6.8-t*5,.58));}mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts),36,.014,4,false),metal,0,0,0,g);}}}
-// A high steel bridge crosses a chord of the circular hall.
-const bridge=bay(Math.PI,0,18,walkways);bridge.position.z=-8;bridge.rotation.y=0;
-box(30,.2,1.65,0,0,0,metal,bridge);for(const side of [-1,1]){box(30,.5,.16,0,-.3,side*.8,metal,bridge);pipe([-15,1.2,side*.8],[15,1.2,side*.8],.045,brass,bridge);pipe([-15,.62,side*.8],[15,.62,side*.8],.035,metal,bridge);for(let i=-15;i<=15;i+=2){pipe([i,0,side*.8],[i,1.25,side*.8],.04,metal,bridge);plate(i,-.28,side*.9,bridge);}}
+// A high steel bridge crosses the atrium above the arcade crowns.
+const bridge=bay(Math.PI,0,24.65,walkways);bridge.position.z=-8;bridge.rotation.y=0;
+if(simple){
+ box(30,.2,1.65,0,0,0,metal,bridge);for(const side of [-1,1]){box(30,.5,.16,0,-.3,side*.8,metal,bridge);pipe([-15,1.2,side*.8],[15,1.2,side*.8],.045,brass,bridge);pipe([-15,.62,side*.8],[15,.62,side*.8],.035,metal,bridge);for(let i=-15;i<=15;i+=2){pipe([i,0,side*.8],[i,1.25,side*.8],.04,metal,bridge);plate(i,-.28,side*.9,bridge);}}
+}else{
+ const bridgeModel=addReferenceOverheadBridge({T,parent:bridge});
+ addUpperLevelLandings({T,parent:walkways,bridge,bridgeModel,centerZ:CZ});
+}
 // Dedicated machinery bay: large gear, countergear, rope drum and overhead pulleys.
 const machine=bay(3*Math.PI/8,19.4,10.05,walkways);addUpperWinch({T,machine,mesh,box,pipe,metal,brass,paleStone,simple});
 // Small drawing alcove beside the rear glazing, kept clear of the circular path.

@@ -1,5 +1,5 @@
 import {addReferenceOverheadBridge} from './reference-overhead-bridge.js?v=1';
-import {addUpperLevelLandings} from './upper-level-landings.js?v=2';
+import {addUpperLevelLandings} from './upper-level-landings.js?v=4';
 // Reference-led upper gallery: all details remain real geometry in clay mode.
 export function addUpperDetails({T,structure,walkways,windows,mesh,box,pipe,metal,brass,paleStone,simple,useReferenceWalkway=false}){
 const R=18.5,CZ=-1,Y=9.95;

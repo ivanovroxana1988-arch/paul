@@ -45,7 +45,7 @@ export function addUpperLevelLandings({T,parent,bridge,bridgeModel,centerZ=-1}){
   for(const side of [-1,1]){
     const a0=side>0?start:-end,a1=side>0?end:-start;
     const gap0=side>0?low:-high,gap1=side>0?high:-low;
-    const domeGapCenter=side*3*Math.PI/8,domeGapHalf=.05;
+    const domeGapCenter=side*3*Math.PI/8,domeGapHalf=side<0?.15:.05;
     const domeGap0=domeGapCenter-domeGapHalf,domeGap1=domeGapCenter+domeGapHalf;
     segment('second-floor-gallery-deck',a0,a1);
     // Leave one gap at the bridge mouth and another toward the dome walkway.

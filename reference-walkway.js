@@ -53,13 +53,17 @@ export function addReferenceWalkway({T,parent,centerZ=-1,simple=false}){
     geometry.rotateZ(liftAngle-Math.PI/2+liftHalfGap);
     const rail=new T.Mesh(geometry,metal);rail.name='walkway-inner-handrail';rail.rotation.x=Math.PI/2;rail.position.set(0,top+height,centerZ);rail.castShadow=true;root.add(rail);
   }
-  const halfGap=.050,part=(Math.PI*2)/8;
+  const halfGap=.050,part=(Math.PI*2)/8,stairAngle=Math.PI*2-Math.atan2(15,7),stairGap=.15;
   for(const height of levels)for(let i=0;i<8;i++){
     const gapCenter=(i+.5)*part,start=gapCenter+halfGap,end=(i+1.5)*part-halfGap;
-    const geometry=new T.TorusGeometry(railRadii[1],height===1.16?.056:.038,6,simple?12:24,end-start);
-    geometry.rotateZ(start-Math.PI/2);
-    const rail=new T.Mesh(geometry,metal);rail.name='walkway-outer-handrail';
-    rail.rotation.x=Math.PI/2;rail.position.set(0,top+height,centerZ);rail.castShadow=true;root.add(rail);
+    const ranges=start<stairAngle+stairGap&&end>stairAngle-stairGap
+      ?[[start,Math.min(end,stairAngle-stairGap)],[Math.max(start,stairAngle+stairGap),end]]:[[start,end]];
+    for(const [a,b] of ranges){if(b<=a)continue;
+      const geometry=new T.TorusGeometry(railRadii[1],height===1.16?.056:.038,6,simple?12:24,b-a);
+      geometry.rotateZ(a-Math.PI/2);
+      const rail=new T.Mesh(geometry,metal);rail.name='walkway-outer-handrail';
+      rail.rotation.x=Math.PI/2;rail.position.set(0,top+height,centerZ);rail.castShadow=true;root.add(rail);
+    }
   }
   // Instancing keeps the rich metal detail affordable on phones.
   const postCount=80,postMatrices=[],clampMatrices=[],baseMatrices=[],seamMatrices=[],rivetMatrices=[];
@@ -76,7 +80,7 @@ export function addReferenceWalkway({T,parent,centerZ=-1,simple=false}){
     return false;
   }
   for(const [edge,radius] of railRadii.entries())for(let i=0;i<postCount;i++){
-    const a=i/postCount*Math.PI*2;if(edge===1&&nearConnector(a))continue;
+    const a=i/postCount*Math.PI*2;if(edge===1&&(nearConnector(a)||Math.abs(Math.atan2(Math.sin(a-stairAngle),Math.cos(a-stairAngle)))<stairGap))continue;
     if(edge===0&&Math.abs(Math.atan2(Math.sin(a-liftAngle),Math.cos(a-liftAngle)))<liftHalfGap)continue;
     let [x,,z]=point(a,radius,0);
     postMatrices.push(matrixAt(x,top+.59,z,-a));clampMatrices.push(matrixAt(x,top+.69,z,-a));

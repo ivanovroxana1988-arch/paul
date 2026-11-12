@@ -17,8 +17,8 @@ for(let index=0;index<roots.length;index++){
 const p=new T.Group();p.name=['skin-reference-details','canvas-reference-details','space-reference-workshop','motion-reference-mechanics'][index];roots[index].add(p);groups.push(p);
 if(entranceDetails)for(const side of [-1,1]){const x=side*3.48;bent([[x,.1,.95],[x,2.1,.95],[x,3.2,.95],[x+side*.12,3.8,.95],[x+side*.12,8.9,.95]],.065,metal,p);for(const y of [.6,3.5,6.4,8.9])plate(x,y,1.03,.55,.24,p);lantern(p,side*3.35,1.15);}
 // Longitudinal strips and successive ribs make the opening a corridor with real depth.
-if(index===0||index===3){for(const z of [-1.6,-4.5,-7.4,-10.3]){rib(p,z,index===0?2.65:2.55,3.75,.18,index===3?metal:stone);if(index===3){for(const side of [-1,1])plate(side*2.56,3.75,z+.32,.35,.35,p);}}
-for(const side of [-1,1]){pipe([side*2.82,.15,-.8],[side*2.82,.15,-11.6],.032,cyan,p);pipe([side*2.82,5.9,-.8],[side*2.82,5.9,-11.6],.035,metal,p);}rib(p,-11.7,1.2,2.4,.12,brass);}
+if(index===0||index===3){for(const z of (index===0?[-1.6,-4.5,-7.4,-10.3,-13.2,-16.1]:[-1.6,-4.5,-7.4,-10.3])){rib(p,z,index===0?2.65:2.55,3.75,.18,index===3?metal:stone);if(index===3){for(const side of [-1,1])plate(side*2.56,3.75,z+.32,.35,.35,p);}}
+for(const side of [-1,1]){pipe([side*2.82,.15,-.8],[side*2.82,.15,index===0?-17.1:-11.6],.032,cyan,p);pipe([side*2.82,5.9,-.8],[side*2.82,5.9,index===0?-17.1:-11.6],.035,metal,p);}rib(p,index===0?-17.2:-11.7,1.2,2.4,.12,brass);}
 }
 // Artwork studio tucked inside the right-of-centre arch.
 const studio=groups[2],deck=box(5.5,.2,2.8,0,3.65,-3.4,metal,studio);deck.name='studio-mezzanine';stats.mezzanines++;

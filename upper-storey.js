@@ -1,7 +1,7 @@
 import {addDome} from './dome.js?v=3';
 import {addUpperDetails} from './upper-details.js?v=8';
 import {addDistantArchitecture} from './distant-architecture.js?v=4';
-import {addReferenceWalkway} from './reference-walkway.js?v=5';
+import {addReferenceWalkway} from './reference-walkway.js?v=lift-right-1';
 // Shared upper-storey geometry for the clay study and the full WebGL scene.
 // The visible structure, narrow walkways and recessed glazing are separate layers.
 export function addUpperStorey({T,scene,mesh,box,pipe,stone,paleStone,metal,brass,root=null,roofRoot=null,simple=false}){

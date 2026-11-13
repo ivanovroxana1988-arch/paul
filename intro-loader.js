@@ -30,7 +30,7 @@
  function boot(){
   if(booted)return;booted=true;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
-   import('./world.js?v=mobile-light-budget-1').catch(()=>{
+   import('./world.js?v=lift-right-1').catch(()=>{
     video.pause();loader.style.display='none';document.querySelector('#error').hidden=false;
    });
   }));

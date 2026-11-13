@@ -1,3 +1,4 @@
+import {LIFT_ANGLE} from './lift-layout.js?v=1';
 // Reference-led, real 3D gallery walkway. Dimensions are in metres.
 // The 1.50 m deck sits just inside the existing structural piers; short
 // bridges connect it to the eight radial galleries without cutting a pier.
@@ -45,7 +46,7 @@ export function addReferenceWalkway({T,parent,centerZ=-1,simple=false}){
   // line up with the connecting paths; the inner rail stays continuous.
   const railRadii=[inner+.08,outer-.08],levels=[.27,.69,1.16];
   // Leave a 3 m opening in the inside rail at the lift landing.
-  const liftAngle=1.43,liftHalfGap=.095;
+  const liftAngle=LIFT_ANGLE,liftHalfGap=.095;
   for(const height of levels){
     const geometry=new T.TorusGeometry(railRadii[0],height===1.16?.056:.038,6,128,Math.PI*2-2*liftHalfGap);
     // The torus lies in XY before it is turned onto the floor. Its opening

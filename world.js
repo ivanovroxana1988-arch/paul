@@ -6,7 +6,7 @@ import * as T from './vendor/three.module.js';
 import {finishSurfaces} from './surface-finish.js?v=3';
 import {addAtelierDetail} from './atelier-detail.js?v=skin-chair-right-1';
 import {addSkinWorkstation} from './skin-workstation.js?v=2';
-import {buildRotunda,ROTUNDA_RADIUS,ROTUNDA_CENTER_Z} from './rotunda.js?v=entrance-door-1';
+import {buildRotunda,ROTUNDA_RADIUS,ROTUNDA_CENTER_Z} from './rotunda.js?v=lift-right-1';
 import {addLevels} from './levels.js?v=4';
 import {addLowerArcadeDetails} from './lower-arcades.js?v=skin-room-2';
 import {addSkinNicheCorridor} from './skin-niche-corridor.js?v=1';
@@ -19,6 +19,7 @@ import {addPlatformStairs} from './platform-stairs.js?v=2';
 import {addThirdFloor} from './third-floor.js?v=2';
 import {addExteriorTerrace} from './exterior-terrace.js?v=1';
 import {createMobileLightBudget} from './mobile-light-budget.js?v=1';
+import {LIFT_ANGLE,LIFT_RADIUS} from './lift-layout.js?v=1';
 const $=s=>document.querySelector(s),canvas=$('#world'),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const frontLayout=document.body.dataset.layout==='five-arcades'?FIVE_ARCADES:null;
 const roomLayout=frontLayout&&[frontLayout[0],frontLayout[1],frontLayout[3],frontLayout[4]];
@@ -113,8 +114,8 @@ for(const [roomIndex,root] of roomRoots.entries()){
 }
 const lowerParts=addLowerArcadeDetails({T,scene,roots:roomRoots,stone,paleStone,metal,brass});
 const skinWorkstation=addSkinWorkstation({T,root:roomRoots[0]});
-// Place the lift in front of the gear assembly, towards the atrium.
-const liftAngle=1.43,liftRadius=12.45,liftTop=9.95;
+// Move the lift along the hall perimeter to clear the Motion gallery entrance.
+const liftAngle=LIFT_ANGLE,liftRadius=LIFT_RADIUS,liftTop=9.95;
 const liftX=Math.sin(liftAngle)*liftRadius,liftZ=ROTUNDA_CENTER_Z-Math.cos(liftAngle)*liftRadius;
 const liftRoot=new T.Group();liftRoot.name='industrial-platform-lift';liftRoot.position.set(liftX,0,liftZ);liftRoot.rotation.y=-liftAngle;scene.add(liftRoot);
 const liftCar=new T.Group();liftCar.name='moving-lift-platform';liftRoot.add(liftCar);

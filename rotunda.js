@@ -1,4 +1,4 @@
-import {addUpperStorey} from './upper-storey.js?v=20';
+import {addUpperStorey} from './upper-storey.js?v=lift-right-1';
 // A circular hall, with radial galleries and a continuous annular balcony.
 export const ROTUNDA_RADIUS=18.5;
 export const ROTUNDA_CENTER_Z=-1;

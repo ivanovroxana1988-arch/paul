@@ -17,13 +17,15 @@ export function addExteriorStreetGrade({T,scene,stone,darkStone}){
   shape.lineTo(-58,-70);
   shape.closePath();
 
-  // Leave the whole central building and photographed underground GLB footprint
-  // clear; its own concrete floor remains visible and never z-fights with terrain.
+  // Remove only the actual GLB floor footprint, not the entire building envelope.
+  // The old oversized 52m cavity produced a huge blue void below the columns.
+  // GLB photo floor spans x=-13.8..13.8, z=-10.6..13.5.
+  // Slight overlap lies BELOW the GLB photo and hides the seam.
   const cavity=new T.Path();
-  cavity.moveTo(-26.3,28.8);
-  cavity.lineTo(-26.3,-24.0);
-  cavity.lineTo(26.3,-24.0);
-  cavity.lineTo(26.3,28.8);
+  cavity.moveTo(-13.70,10.50);
+  cavity.lineTo(-13.70,-13.42);
+  cavity.lineTo(13.70,-13.42);
+  cavity.lineTo(13.70,10.50);
   cavity.closePath();
   shape.holes.push(cavity);
 
@@ -33,7 +35,8 @@ export function addExteriorStreetGrade({T,scene,stone,darkStone}){
   const grade=new T.Mesh(new T.ShapeGeometry(shape),groundMaterial);
   grade.name='site-ground-at-new-street-level';
   grade.rotation.x=-Math.PI/2;
-  grade.position.y=CITY_GRADE_Y-.02;
+  // Close to the city terrain at y=grade+.02 but just below GLB photo at grade+.03.
+  grade.position.y=CITY_GRADE_Y+.014;
   grade.receiveShadow=false;
   grade.castShadow=false;
   root.add(grade);

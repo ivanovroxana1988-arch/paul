@@ -1,10 +1,14 @@
+import {CITY_GRADE_Y} from '../city-layout.js?v=3';
 // Weather particles live outside the building envelope. Above the glazed dome,
 // particles remain outside too; no rain or snow is generated in the atrium.
 export function createExteriorWeather({T,scene,reducedMotion=false}) {
   const count=reducedMotion?350:1100, positions=new Float32Array(count*6), seeds=[];
   const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.BufferAttribute(positions,3).setUsage(T.DynamicDrawUsage));
   const material=new T.LineBasicMaterial({color:'#c9dce3',transparent:true,opacity:.55,depthWrite:false,fog:false});
-  const particles=new T.LineSegments(geometry,material);particles.name='exterior-weather';particles.frustumCulled=false;particles.visible=false;scene.add(particles);
+  const particles=new T.LineSegments(geometry,material);particles.name='exterior-weather';particles.frustumCulled=false;particles.visible=false;
+  // Rain and snow must reach the new street, not stop at the old y=0 ground.
+  particles.position.y=CITY_GRADE_Y;
+  scene.add(particles);
   for(let i=0;i<count;i++) {const a=Math.random()*Math.PI*2, radius=36+Math.random()*39;seeds.push({x:Math.cos(a)*radius,z:-1+Math.sin(a)*radius,y:Math.random()*66,phase:Math.random()*6.28});}
   let state=null, elapsed=0;
   function update(dt) {

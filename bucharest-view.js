@@ -1,7 +1,7 @@
 import {GLTFLoader} from './vendor/loaders/GLTFLoader.js';
 import {TextureLoader, RepeatWrapping, SRGBColorSpace, Mesh, PlaneGeometry, MeshStandardMaterial} from './vendor/three.module.js';
-import {addBucharestLandscape} from './bucharest-landscape.js?v=4';
-import {CITY_OFFSET_Z,CITY_SCALE_XZ,CITY_SCALE_Y} from './city-layout.js?v=2';
+import {addBucharestLandscape} from './bucharest-landscape.js?v=5';
+import {CITY_OFFSET_Z,CITY_SCALE_XZ,CITY_SCALE_Y,CITY_GRADE_Y} from './city-layout.js?v=3';
 
 // Map3D's exported city is merged by facade type for mobile devices.
 // The map is placed beyond the north-facing exterior windows, not in the hall.
@@ -38,9 +38,9 @@ export function addBucharestView({scene}) {
   loader.load('./assets/bucuresti-variate.glb', gltf => {
     const city = gltf.scene;
     city.name = 'bucharest-map3d-exterior';
-    // The model's ground is at y=0, the same height as the atrium ground floor.
+    // This is the new street grade, 4.2 m below the former parter floor.
     city.scale.set(CITY_SCALE_XZ, CITY_SCALE_Y, CITY_SCALE_XZ);
-    city.position.set(0, 0, CITY_OFFSET_Z);
+    city.position.set(0, CITY_GRADE_Y, CITY_OFFSET_Z);
     city.traverse(object => {
       if (!object.isMesh) return;
       object.castShadow = false;
@@ -65,14 +65,14 @@ export function addBucharestView({scene}) {
     }));
     ground.name = 'bucharest-exterior-ground';
     ground.rotation.x = -Math.PI / 2;
-    ground.position.set(-1, -.02, CITY_OFFSET_Z + 7);
+    ground.position.set(-1, CITY_GRADE_Y + .02, CITY_OFFSET_Z + 7);
     ground.receiveShadow = false;
     scene.add(ground);
     // Small pitched roof accents are merged into one mesh and stay within the
     // footprints of suitable low-rise buildings.
     loader.load('./assets/oras-acoperisuri.glb', result => {
       const roofs=result.scene;roofs.name='bucharest-roof-details';
-      roofs.scale.set(CITY_SCALE_XZ,CITY_SCALE_Y,CITY_SCALE_XZ);roofs.position.set(0,0,CITY_OFFSET_Z);
+      roofs.scale.set(CITY_SCALE_XZ,CITY_SCALE_Y,CITY_SCALE_XZ);roofs.position.set(0,CITY_GRADE_Y,CITY_OFFSET_Z);
       roofs.traverse(object=>{
         if(!object.isMesh)return;
         object.castShadow=false;object.receiveShadow=false;

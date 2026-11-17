@@ -1,4 +1,5 @@
-// An open-air stone terrace outside the north-facing ground-floor arch.
+import {CITY_GRADE_Y} from './city-layout.js?v=3';
+// The original terrace now stands one storey above the new street grade.
 export function addExteriorTerrace({T,scene,mesh,box,stone,paleStone,darkStone}){
  const root=new T.Group();root.name='bucharest-outdoor-terrace';scene.add(root);
  // A continuous angled approach links the central passage to the outer arch.
@@ -12,6 +13,17 @@ export function addExteriorTerrace({T,scene,mesh,box,stone,paleStone,darkStone})
  for(const x of [0,12]){
   const side=box(.48,.72,6.2,x,.36,-36.2,stone,root);side.name='terrace-side-parapet';
   const cap=box(.62,.12,6.3,x,.78,-36.2,paleStone,root);cap.name='terrace-side-stone-cap';
+ }
+ // Its paving remains at the original y=0, supported down to the new street.
+ // These supports sit under the terrace and keep the exterior composition plausible.
+ const pierHeight=-CITY_GRADE_Y;
+ for(const z of [-38.65,-32.6])for(const x of [.6,6,11.4]){
+   const pier=box(.62,pierHeight,.62,x,CITY_GRADE_Y/2,z,darkStone,root);
+   pier.name='elevated-terrace-ground-support';
+ }
+ for(const [x,z] of [[3.3,23.8],[5.1,29.8]]){
+   const pier=box(.46,pierHeight,.46,x,CITY_GRADE_Y/2,z,darkStone,root);
+   pier.name='elevated-approach-ground-support';
  }
  // Shallow joints make the floor read as large weathered stone slabs.
  for(let x=1.5;x<12;x+=1.5){const joint=box(.018,.006,7.9,x,.023,-35.3,darkStone,root);joint.name='terrace-paving-joint';}

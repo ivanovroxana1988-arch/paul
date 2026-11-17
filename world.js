@@ -7,7 +7,7 @@ import {finishSurfaces} from './surface-finish.js?v=3';
 import {addAtelierDetail} from './atelier-detail.js?v=skin-chair-right-1';
 import {addSkinWorkstation} from './skin-workstation.js?v=2';
 import {buildRotunda,ROTUNDA_RADIUS,ROTUNDA_CENTER_Z} from './rotunda.js?v=lift-right-1';
-import {addLevels} from './levels.js?v=4';
+import {addLevels} from './levels.js?v=5';
 import {loadBasementThroughGlass} from './subsol-paul-loader.js?v=1';
 import {addLowerArcadeDetails} from './lower-arcades.js?v=skin-room-2';
 import {addSkinNicheCorridor} from './skin-niche-corridor.js?v=1';
@@ -410,6 +410,9 @@ function upperWalkable(x,z){
 }
 function walkAllowed(x,z,ground=0){
  if(!levels.canWalk(x,z,ground))return false;
+ // The basement floor has its own layout. Do not apply ground-level room
+ // colliders or rotunda restrictions to visitors below the glass.
+ if(ground < -2.1)return levels.basementPassable(x,z);
  if(ground>-.55&&exteriorTerrace.walkable(x,z))return true;
  // Walk through the marked entrance without allowing passage through the
  // adjacent solid perimeter walls. The paving already extends to this point.

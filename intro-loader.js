@@ -30,7 +30,7 @@
  function boot(){
   if(booted)return;booted=true;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
-   import('./world.js?v=basement-arches-1').catch(()=>{
+   import('./world.js?v=basement-facing-1').catch(()=>{
     video.pause();loader.style.display='none';document.querySelector('#error').hidden=false;
    });
   }));

@@ -7,7 +7,7 @@ import {finishSurfaces} from './surface-finish.js?v=3';
 import {addAtelierDetail} from './atelier-detail.js?v=skin-chair-right-1';
 import {addSkinWorkstation} from './skin-workstation.js?v=2';
 import {buildRotunda,ROTUNDA_RADIUS,ROTUNDA_CENTER_Z} from './rotunda.js?v=lift-right-1';
-import {addLevels} from './levels.js?v=5';
+import {addLevels} from './levels.js?v=6';
 import {loadBasementThroughGlass} from './subsol-paul-loader.js?v=2';
 import {addLowerArcadeDetails} from './lower-arcades.js?v=skin-room-2';
 import {addSkinNicheCorridor} from './skin-niche-corridor.js?v=1';
@@ -16,7 +16,8 @@ import {createVisibleSky} from './solar/visible-sky.js?v=7';
 import {createBucharestWeather} from './solar/bucharest-weather.js';
 import {createExteriorWeather} from './solar/exterior-weather.js?v=street-grade-1';
 import {addBucharestView} from './bucharest-view.js?v=12';
-import {addExteriorStreetGrade} from './exterior-grade.js?v=1';
+import {addExteriorStreetGrade} from './exterior-grade.js?v=2';
+import {addUrbanUndercroft} from './urban-undercroft.js?v=1';
 import {addPlatformStairs} from './platform-stairs.js?v=2';
 import {addThirdFloor} from './third-floor.js?v=2';
 import {addExteriorTerrace} from './exterior-terrace.js?v=2';
@@ -61,6 +62,8 @@ const levels=addLevels({T,scene,mesh,box,pipe,stone,paleStone,darkStone,metal,br
 // The city and external terrain use the former basement (-4.2m) as street level.
 // The glass floor, old parter and terraces remain elevated at y=0.
 const exteriorGrade=addExteriorStreetGrade({T,scene,stone,darkStone});
+// Complete the street-grade undercroft without covering the GLB, glass or stair.
+const urbanUndercroft=addUrbanUndercroft({T,scene,ground:exteriorGrade.grade});
 // Photographic lower level shares the glass and stair geometry from levels.js.
 // If the optional GLB is unavailable, existing navigation keeps working.
 loadBasementThroughGlass({T,scene});

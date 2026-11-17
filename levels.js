@@ -42,6 +42,15 @@ function inside(x,z){return x>left&&x<right&&z>far&&z<near;}
 // The imported basement extends behind the arched wall. Keep navigation on its
 // own -4.2 m floor instead of snapping visitors back to ground level at z=far.
 function basementPassable(x,z){
+ // Open passage from the photographic basement to the new street-level
+ // undercroft and city. The two side mural walls sit outside this lane.
+ if(z<=-10.35&&z>=-42&&x>-16.9&&x<16.9){
+  // Keep the row of existing y=0 slab supports solid at z=-29.
+  for(const cx of [-17,-8.5,0,8.5,17]){
+   if(Math.abs(z+29)<.52&&Math.abs(x-cx)<.52)return false;
+  }
+  return true;
+ }
  if(x<=-11.3||x>=7.2||z<=-10.35||z>=13.45)return false;
  // The wall at z=far is structural. Cross it through the three existing arches.
  if(z>5.50&&z<6.55&&x>stairRight&&x<right

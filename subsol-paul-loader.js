@@ -40,9 +40,10 @@ export function loadBasementThroughGlass({ T, scene, onLoaded, onError }) {
       // Local, affordable fill lighting. The existing daylight and two warm
       // stairwell lamps from levels.js remain authoritative.
       for (const [x, y, z, color, intensity, distance] of [
-        [-3.4, -1.9, 8.0, '#e6efff', 4.0, 11],
-        [3.5, -2.0, 4.0, '#ffdeb6', 3.0, 11],
-        [-5.2, -2.2, -3.1, '#f4e6d7', 3.2, 9],
+        // Coordinates are LOCAL to the basement group at world y=-4.2.
+        [-3.4, 2.3, 8.0, '#e6efff', 4.0, 11],
+        [3.5, 2.2, 4.0, '#ffdeb6', 3.0, 11],
+        [-5.2, 2.0, -3.1, '#f4e6d7', 3.2, 9],
       ]) {
         const lamp = new T.PointLight(color, intensity, distance, 2);
         lamp.position.set(x, y, z);

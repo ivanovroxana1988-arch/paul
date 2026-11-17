@@ -8,6 +8,7 @@ import {addAtelierDetail} from './atelier-detail.js?v=skin-chair-right-1';
 import {addSkinWorkstation} from './skin-workstation.js?v=2';
 import {buildRotunda,ROTUNDA_RADIUS,ROTUNDA_CENTER_Z} from './rotunda.js?v=lift-right-1';
 import {addLevels} from './levels.js?v=4';
+import {loadBasementThroughGlass} from './subsol-paul-loader.js?v=1';
 import {addLowerArcadeDetails} from './lower-arcades.js?v=skin-room-2';
 import {addSkinNicheCorridor} from './skin-niche-corridor.js?v=1';
 import {createSolarLight} from './solar/solar-light.js?v=8';
@@ -56,6 +57,9 @@ $('#sunSummer').addEventListener('click',()=>{solar.setSummer();$('#sunHint').te
 solar.start();
 // The floor, openings and all architecture are actual meshes.
 const levels=addLevels({T,scene,mesh,box,pipe,stone,paleStone,darkStone,metal,brass,mint});
+// Photographic lower level shares the glass and stair geometry from levels.js.
+// If the optional GLB is unavailable, existing navigation keeps working.
+loadBasementThroughGlass({T,scene});
 const platformStairs=addPlatformStairs({T,scene,metal,brass});
 const thirdFloor=addThirdFloor({T,scene,mesh,box,pipe,stone,paleStone,metal});
 const exteriorTerrace=addExteriorTerrace({T,scene,mesh,box,stone,paleStone,darkStone});

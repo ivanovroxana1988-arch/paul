@@ -1,0 +1,42 @@
+name: Build photo-based basement asset
+
+on:
+  push:
+    paths:
+      - '.github/workflows/build-subsol.yml'
+      - 'scripts/build-basement/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paul-basement-asset
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Paul's Artspace
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install mesh-build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'numpy>=1.26,<3' 'Pillow>=10,<13' 'trimesh>=4,<6' 'opencv-python-headless>=4.8,<5'
+      - name: Build and validate glass-aligned GLB
+        run: python scripts/build-basement/build.py
+      - name: Commit generated asset
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/subsol_paul_geam_parter_v4_web.glb
+          if ! git diff --cached --quiet; then
+            git commit -m "Build photo-based basement GLB beneath glass floor"
+            git push
+          fi
